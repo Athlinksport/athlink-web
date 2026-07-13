@@ -49,6 +49,8 @@ export default function ProfilePage() {
   const [locationVisibility, setLocationVisibility] = useState("city");
   const [profileVisibility, setProfileVisibility] = useState("public");
 
+  const [birthDate, setBirthDate] = useState<string | null>(null);
+
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -65,6 +67,9 @@ export default function ProfilePage() {
       }
 
       setUserId(user.id);
+
+      const userBirthDate = user.user_metadata?.birth_date || null;
+      setBirthDate(userBirthDate);
 
       const { data, error } = await supabase
         .from("profiles")
@@ -88,8 +93,10 @@ export default function ProfilePage() {
         setSearchRadius(data.search_radius_km || 10);
         setLocationVisibility(data.location_visibility || "city");
         setProfileVisibility(data.profile_visibility || "public");
+        setBirthDate(data.birth_date || userBirthDate);
       } else {
         setDisplayName(user.user_metadata?.first_name || "");
+        setBirthDate(userBirthDate);
       }
 
       setIsLoading(false);
@@ -145,6 +152,7 @@ export default function ProfilePage() {
     const { error } = await supabase.from("profiles").upsert({
       id: userId,
       display_name: displayName.trim(),
+      birth_date: birthDate,
       bio: bio.trim() || null,
       city_name: cityName.trim(),
       country_name: countryName.trim() || null,
@@ -273,6 +281,27 @@ export default function ProfilePage() {
                   className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-lime-400"
                 />
               </div>
+
+              <div>
+                 <label
+                  htmlFor="birthDate"
+                  className="mb-2 block text-sm text-slate-300"
+                >
+                  Date of birth
+                </label>
+
+                <input
+                  id="birthDate"
+                  type="date"
+                  value={birthDate || ""}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none transition focus:border-lime-400"
+                />
+
+                <p className="mt-2 text-xs text-slate-500">
+                   Your full date of birth will remain private. Only your age may be shown on your public profile.
+                </p>
+              </div> 
 
               <div>
                 <label

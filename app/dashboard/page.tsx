@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AppNavbar from "@/components/AppNavbar";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,11 +31,7 @@ export default function DashboardPage() {
     loadUser();
   }, [router, supabase]);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
+  
 
   if (isLoading) {
     return (
@@ -46,35 +43,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-2xl font-bold">
-            Athlink
-          </Link>
-
-          <nav className="flex items-center gap-5 text-sm text-slate-300">
-            <Link href="/dashboard" className="text-white">
-              Dashboard
-            </Link>
-
-            <Link href="/rooms" className="hover:text-white">
-              Rooms
-            </Link>
-
-            <Link href="/profile" className="hover:text-white">
-              Profile
-            </Link>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-full border border-white/15 px-4 py-2 transition hover:bg-white/10"
-            >
-              Log out
-            </button>
-          </nav>
-        </div>
-      </header>
+      <AppNavbar />
 
       <section className="mx-auto max-w-7xl px-6 py-14">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
