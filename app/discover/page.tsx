@@ -1,7 +1,12 @@
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import AppNavbar from "@/components/AppNavbar";
+import { sports as allSports } from "@/data/sports";
 import PlayerCard, {
   PlayerCardData,
 } from "@/components/PlayerCard";
+import { error } from "console";
 
 const examplePlayers: PlayerCardData[] = [
   {
@@ -98,6 +103,111 @@ verified: true,
 ];
 
 export default function DiscoverPage() {
+const supabase = createClient();
+
+const [players, setPlayers] = useState<PlayerCardData[]>([]);
+const [isLoading, setIsLoading] = useState(true);
+  const [sportFilter, setSportFilter] = useState("all");
+useEffect(() => {
+  async function loadPlayers() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("profile_visibility", "public")
+      .neq("id", user.id);
+
+    if (error) {
+      console.error(error);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log(data);
+
+    setIsLoading(false);
+  }
+
+  loadPlayers();
+}, []);
+useEffect(() => {
+  async function loadPlayers() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return;
+    }
+
+    const { data: profiles, error: profilesError } = await supabase
+  .from("profiles")
+  .select(`
+    id,
+    display_name,
+    birth_date,
+    bio,
+    city_name,
+    country_name,
+    languages,
+    looking_for
+  `)
+  .eq("profile_visibility", "public")
+  .neq("id", user.id);
+
+if (profilesError) {
+  console.error(profilesError);
+  setIsLoading(false);
+  return;
+}
+
+const profileIds = (profiles || []).map((profile) => profile.id);
+
+let sports: {
+  user_id: string;
+  sport_name: string;
+  level: string | null;
+  is_primary: boolean | null;
+}[] = [];
+
+if (profileIds.length > 0) {
+  const { data: sportsData, error: sportsError } = await supabase
+    .from("user_sports")
+    .select("user_id, sport_name, level, is_primary")
+    .in("user_id", profileIds);
+
+  if (sportsError) {
+    console.error(sportsError);
+    setIsLoading(false);
+    return;
+  }
+
+  sports = sportsData || [];
+}
+
+console.log({ profiles, sports });
+
+setIsLoading(false);
+
+  }
+
+  loadPlayers();
+}, []);
+  const filteredPlayers = useMemo(() => {
+    if (sportFilter === "all") {
+      return examplePlayers;
+    }
+
+    return examplePlayers.filter((player) =>
+      player.sports.some((sport) => sport.name === sportFilter)
+    );
+  }, [sportFilter]);
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <AppNavbar />
@@ -126,28 +236,39 @@ export default function DiscoverPage() {
               className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none placeholder:text-slate-600 focus:border-lime-400 lg:col-span-2"
             />
 
-            <select className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-lime-400">
-              <option>All sports</option>
-              <option>Badminton</option>
-              <option>Running</option>
-              <option>Gym</option>
-              <option>Padel</option>
+            <select
+              value={sportFilter}
+              onChange={(event) => setSportFilter(event.target.value)}
+              className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-lime-400"
+            >
+              <option value="all">All sports</option>
+
+              {allSports
+                .slice()
+                .sort((firstSport, secondSport) =>
+                  firstSport.name.localeCompare(secondSport.name)
+                )
+                .map((sport) => (
+                  <option key={sport.id} value={sport.name}>
+                    {sport.name}
+                  </option>
+                ))}
             </select>
 
             <select className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-lime-400">
-              <option>Any distance</option>
-              <option>Within 3 km</option>
-              <option>Within 5 km</option>
-              <option>Within 10 km</option>
-              <option>Within 20 km</option>
+              <option value="all">Any distance</option>
+              <option value="3">Within 3 km</option>
+              <option value="5">Within 5 km</option>
+              <option value="10">Within 10 km</option>
+              <option value="20">Within 20 km</option>
             </select>
 
             <select className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-lime-400">
-              <option>Any age</option>
-              <option>18–24</option>
-              <option>25–30</option>
-              <option>31–40</option>
-              <option>41+</option>
+              <option value="all">Any age</option>
+              <option value="18-24">18–24</option>
+              <option value="25-30">25–30</option>
+              <option value="31-40">31–40</option>
+              <option value="41+">41+</option>
             </select>
           </div>
         </div>
@@ -164,15 +285,28 @@ export default function DiscoverPage() {
           </div>
 
           <p className="text-sm text-slate-500">
-            {examplePlayers.length} people found
+            {filteredPlayers.length} people found
           </p>
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {examplePlayers.map((player) => (
-            <PlayerCard key={player.id} player={player} />
-          ))}
-        </div>
+          {filteredPlayers.length === 0 && (
+            <div className="mt-8 rounded-3xl border border-dashed border-white/15 p-10 text-center">
+              <h3 className="text-lg font-semibold">
+                No athletes found for this sport
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Try another sport or select All sports.
+              </p>
+            </div>
+         )}
+         {filteredPlayers.length > 0 && (
+           <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+             {filteredPlayers.map((player) => (
+               <PlayerCard key={player.id} player={player} />
+             ))}
+           </div>
+         )}
       </section>
     </main>
   );
