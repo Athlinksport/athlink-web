@@ -6,7 +6,6 @@ import { sports as allSports } from "@/data/sports";
 import PlayerCard, {
   PlayerCardData,
 } from "@/components/PlayerCard";
-import { error } from "console";
 
 const examplePlayers: PlayerCardData[] = [
   {
@@ -102,39 +101,54 @@ verified: true,
   },
 ];
 
+function calculateMatchPercentage(
+  sharedSports: number,
+  sharedLanguages: number,
+  sharedGoals: number
+) {
+  const score =
+    45 +
+    sharedSports * 20 +
+    sharedLanguages * 7 +
+    sharedGoals * 8;
+
+  return Math.min(score, 98);
+}
+function calculateAge(birthDate: string | null) {
+  if (!birthDate) {
+    return undefined;
+  }
+
+  const birth = new Date(birthDate);
+  const today = new Date();
+
+  if (Number.isNaN(birth.getTime())) {
+    return undefined;
+  }
+
+  let age = today.getFullYear() - birth.getFullYear();
+
+  const monthDifference =
+    today.getMonth() - birth.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+
+  return age;
+}
+
 export default function DiscoverPage() {
 const supabase = createClient();
 
 const [players, setPlayers] = useState<PlayerCardData[]>([]);
 const [isLoading, setIsLoading] = useState(true);
   const [sportFilter, setSportFilter] = useState("all");
-useEffect(() => {
-  async function loadPlayers() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("profile_visibility", "public")
-      .neq("id", user.id);
-
-    if (error) {
-      console.error(error);
-      setIsLoading(false);
-      return;
-    }
-
-    console.log(data);
-
-    setIsLoading(false);
-  }
-
-  loadPlayers();
-}, []);
 useEffect(() => {
   async function loadPlayers() {
     const {
@@ -144,6 +158,20 @@ useEffect(() => {
     if (!user) {
       return;
     }
+    
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("languages, looking_for")
+      .eq("id", user.id)
+      .single();
+   
+    const { data: currentSports } = await supabase
+      .from("user_sports")
+      .select("sport_name")
+      .eq("user_id", user.id);
+    console.log(currentProfile);
+    console.log(currentSports);
+    console.log("Current user id:", user.id);
 
     const { data: profiles, error: profilesError } = await supabase
   .from("profiles")
@@ -190,23 +218,75 @@ if (profileIds.length > 0) {
   sports = sportsData || [];
 }
 
-console.log({ profiles, sports });
+const mappedPlayers: PlayerCardData[] = (profiles || []).map((profile) => {
+  const playerSports = sports
+    .filter((sport) => sport.user_id === profile.id)
+    .map((sport) => ({
+      name: sport.sport_name,
+      level: sport.level || "",
+      isPrimary: sport.is_primary ?? false,
+    }));
 
-setIsLoading(false);
+  const mySportNames = new Set(
+    (currentSports || []).map((sport) => sport.sport_name)
+  );
 
-  }
+  const myLanguages = new Set(
+    currentProfile?.languages || []
+  );
+
+  const myGoals = new Set(
+    currentProfile?.looking_for || []
+  );
+
+  const sharedSports = playerSports.filter((sport) =>
+    mySportNames.has(sport.name)
+  );
+
+  const sharedLanguages = (profile.languages || []).filter((language: string) =>
+    myLanguages.has(language)
+  );
+
+  const sharedGoals = (profile.looking_for || []).filter((goal: string) =>
+    myGoals.has(goal)
+  );
+
+  return {
+    id: profile.id,
+    displayName: profile.display_name || "Unknown",
+    age: calculateAge(profile.birth_date),
+    city: profile.city_name || "",
+    distanceKm: undefined,
+    bio: profile.bio || "",
+    sports: playerSports,
+    languages: profile.languages || [],
+    lookingFor: profile.looking_for || [],
+    availabilityLabel: "",
+    matchPercentage: calculateMatchPercentage(
+      sharedSports.length,
+      sharedLanguages.length,
+      sharedGoals.length
+    ),
+    matchReasons: [],
+    verified: false,
+  };
+});
+
+setPlayers(mappedPlayers);
+  setIsLoading(false);
+}
 
   loadPlayers();
 }, []);
   const filteredPlayers = useMemo(() => {
     if (sportFilter === "all") {
-      return examplePlayers;
+      return players;
     }
 
-    return examplePlayers.filter((player) =>
+    return players.filter((player) =>
       player.sports.some((sport) => sport.name === sportFilter)
     );
-  }, [sportFilter]);
+  }, [players, sportFilter]);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -285,7 +365,8 @@ setIsLoading(false);
           </div>
 
           <p className="text-sm text-slate-500">
-            {filteredPlayers.length} people found
+            {filteredPlayers.length}{" "}
+            {filteredPlayers.length === 1 ? "person" : "people"} found
           </p>
         </div>
 
