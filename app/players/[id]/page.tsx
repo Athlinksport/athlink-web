@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 type ProfileRow = {
   id: string;
   display_name: string | null;
+  avatar_url: string | null;
   birth_date: string | null;
   bio: string | null;
   city_name: string | null;
@@ -96,6 +97,14 @@ export default function PublicPlayerPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
+
+  const [connectionStatus, setConnectionStatus] = useState<
+    "none" | "pending" | "accepted" | "declined"
+  >("none");
+
+  const [isIncomingRequest, setIsIncomingRequest] = useState(false);
+
   useEffect(() => {
     async function loadPlayer() {
       const {
@@ -108,7 +117,38 @@ export default function PublicPlayerPage() {
       }
 
       setCurrentUserId(user.id);
+      const { data: existingConnection, error: connectionError } =
+        await supabase
+          .from("connections")
+          .select("status, sender_id, receiver_id")
+          .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${playerId}),and(sender_id.eq.${playerId},receiver_id.eq.${user.id})`
+          )
+          .maybeSingle();
 
+      if (connectionError) {
+        console.error("Connection error:", {
+          message: connectionError.message,
+          details: connectionError.details,
+          hint: connectionError.hint,
+          code: connectionError.code,
+        });
+
+        setMessage(
+          `Connection error: ${connectionError.message || "Unknown error"}`
+        );
+      } else if (existingConnection) {
+        setConnectionStatus(
+          existingConnection.status as
+          | "pending"
+          | "accepted"
+          | "declined"
+        );
+
+        setIsIncomingRequest(
+          existingConnection.receiver_id === user.id
+        );
+      }
       const { data: profileData, error: profileError } =
         await supabase
           .from("profiles")
@@ -116,6 +156,7 @@ export default function PublicPlayerPage() {
             `
               id,
               display_name,
+              avatar_url,
               birth_date,
               bio,
               city_name,
@@ -219,6 +260,52 @@ export default function PublicPlayerPage() {
 
   const isOwnProfile =
     Boolean(currentUserId) && currentUserId === playerId;
+  async function handleConnect() {
+    if (!currentUserId || !playerId) {
+      return;
+    }
+
+    setMessage("");
+    setIsSendingRequest(true);
+
+    const { error } = await supabase.from("connections").insert({
+      sender_id: currentUserId,
+      receiver_id: playerId,
+      status: "pending",
+    });
+
+    if (error) {
+      setMessage(error.message);
+      setIsSendingRequest(false);
+      return;
+    }
+
+    setConnectionStatus("pending");
+    setIsSendingRequest(false);
+  }
+
+  async function handleRemoveConnection() {
+    if (!currentUserId || !playerId) {
+      return;
+    }
+
+    setMessage("");
+
+    const { error } = await supabase
+      .from("connections")
+      .delete()
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${playerId}),and(sender_id.eq.${playerId},receiver_id.eq.${currentUserId})`
+      );
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setConnectionStatus("none");
+    setIsIncomingRequest(false);
+  }
 
   if (isLoading) {
     return (
@@ -270,8 +357,18 @@ export default function PublicPlayerPage() {
         <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900">
           <div className="relative min-h-64 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
             <div className="flex min-h-64 items-center justify-center">
-              <div className="flex h-36 w-36 items-center justify-center rounded-full bg-lime-400 text-5xl font-bold text-slate-950 shadow-2xl shadow-lime-400/10">
-                {getInitials(displayName)}
+              <div className="flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border-4 border-white/10 bg-slate-800 shadow-2xl shadow-black/30">
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={`${displayName} profile`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-5xl font-bold text-lime-400">
+                    {getInitials(displayName)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -310,9 +407,34 @@ export default function PublicPlayerPage() {
                   <>
                     <button
                       type="button"
-                      className="rounded-xl bg-lime-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-lime-300"
+                      onClick={() => {
+                        if (connectionStatus === "pending" && isIncomingRequest) {
+                          router.push("/connections");
+                          return;
+                        }
+
+                        if (
+                          connectionStatus === "pending" ||
+                          connectionStatus === "accepted"
+                        ) {
+                          handleRemoveConnection();
+                          return;
+                        }
+
+                        handleConnect();
+                      }}
+                      disabled={isSendingRequest}
+                      className="rounded-xl bg-lime-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Connect
+                      {isSendingRequest
+                        ? "Please wait..."
+                        : connectionStatus === "pending" && isIncomingRequest
+                          ? "Review request"
+                          : connectionStatus === "pending"
+                            ? "Cancel request"
+                            : connectionStatus === "accepted"
+                              ? "Disconnect"
+                              : "Connect"}
                     </button>
 
                     <button
@@ -465,7 +587,7 @@ export default function PublicPlayerPage() {
                   <h2 className="font-semibold">Languages</h2>
 
                   {profile.languages &&
-                  profile.languages.length > 0 ? (
+                    profile.languages.length > 0 ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {profile.languages.map((language) => (
                         <span
@@ -487,7 +609,7 @@ export default function PublicPlayerPage() {
                   <h2 className="font-semibold">Open to</h2>
 
                   {profile.looking_for &&
-                  profile.looking_for.length > 0 ? (
+                    profile.looking_for.length > 0 ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {profile.looking_for.map((option) => (
                         <span

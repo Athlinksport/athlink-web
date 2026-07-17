@@ -178,6 +178,7 @@ useEffect(() => {
   .select(`
     id,
     display_name,
+    avatar_url,
     birth_date,
     bio,
     city_name,
@@ -251,9 +252,36 @@ const mappedPlayers: PlayerCardData[] = (profiles || []).map((profile) => {
     myGoals.has(goal)
   );
 
+  const matchReasons: string[] = [];
+
+  if (sharedSports.length > 0) {
+  matchReasons.push(
+    `You both enjoy ${sharedSports[0].name}`
+  );
+  }
+
+  if (sharedLanguages.length > 0) {
+  matchReasons.push(
+    `You both speak ${sharedLanguages[0]}`
+  );
+  }
+
+  if (sharedGoals.length > 0) {
+  matchReasons.push(
+    `You are both looking for ${sharedGoals[0]}`
+  );
+  }
+
+  if (matchReasons.length === 0) {
+  matchReasons.push(
+    "You may still be a good sports match"
+  );
+  }
+  
   return {
     id: profile.id,
     displayName: profile.display_name || "Unknown",
+    profileImageUrl: profile.avatar_url || undefined,
     age: calculateAge(profile.birth_date),
     city: profile.city_name || "",
     distanceKm: undefined,
@@ -267,7 +295,7 @@ const mappedPlayers: PlayerCardData[] = (profiles || []).map((profile) => {
       sharedLanguages.length,
       sharedGoals.length
     ),
-    matchReasons: [],
+    matchReasons,
     verified: false,
   };
 });

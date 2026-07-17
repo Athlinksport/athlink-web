@@ -17,6 +17,12 @@ const navigationItems = [
     label: "Discover",
     href: "/discover",
   },
+
+  {
+    label: "Connections",
+    href: "/connections",
+  },
+
   {
     label: "Rooms",
     href: "/rooms",
