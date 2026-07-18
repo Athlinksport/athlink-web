@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -39,6 +40,35 @@ export default function AppNavbar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    async function loadPendingRequestsCount() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setPendingRequestsCount(0);
+        return;
+      }
+
+      const { count, error } = await supabase
+        .from("connections")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+
+      if (error) {
+        console.error("Unable to load pending requests count:", error.message);
+        return;
+      }
+
+      setPendingRequestsCount(count ?? 0);
+    }
+
+    loadPendingRequestsCount();
+  }, [supabase, pathname]);
 
   function isActive(href: string) {
     if (href === "/profile") {
@@ -79,7 +109,15 @@ export default function AppNavbar({
                     : "transition hover:text-white"
                 }
               >
-                {item.label}
+                <span className="inline-flex items-center">
+                  {item.label}
+
+                  {item.href === "/connections" && pendingRequestsCount > 0 && (
+                    <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">
+                      {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
+                    </span>
+                  )}
+                </span>
               </Link>
             );
           })}

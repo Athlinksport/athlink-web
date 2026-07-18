@@ -289,6 +289,9 @@ export default function PublicPlayerPage() {
       return;
     }
 
+    if (!window.confirm("Are you sure you want to disconnect?")) {
+      return;
+    }
     setMessage("");
 
     const { error } = await supabase
