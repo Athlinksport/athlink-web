@@ -310,6 +310,25 @@ export default function PublicPlayerPage() {
     setIsIncomingRequest(false);
   }
 
+  async function handleMessage() {
+    if (!playerId) return;
+
+    const { data, error } = await supabase.rpc(
+      "get_or_create_direct_conversation",
+      {
+        other_user_id: playerId,
+      }
+    );
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push(`/messages/${data}`);
+  }
+
+
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
@@ -408,37 +427,52 @@ export default function PublicPlayerPage() {
                   </Link>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (connectionStatus === "pending" && isIncomingRequest) {
-                          router.push("/connections");
-                          return;
-                        }
+                    {connectionStatus === "accepted" ? (
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={handleMessage}
+                          className="rounded-xl border border-lime-400 px-6 py-3 font-semibold text-lime-400 transition hover:bg-lime-400 hover:text-slate-950"
+                        >
+                          Message
+                        </button>
 
-                        if (
-                          connectionStatus === "pending" ||
-                          connectionStatus === "accepted"
-                        ) {
-                          handleRemoveConnection();
-                          return;
-                        }
+                        <button
+                          type="button"
+                          onClick={handleRemoveConnection}
+                          className="rounded-xl bg-lime-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-lime-300"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (connectionStatus === "pending" && isIncomingRequest) {
+                            router.push("/connections");
+                            return;
+                          }
 
-                        handleConnect();
-                      }}
-                      disabled={isSendingRequest}
-                      className="rounded-xl bg-lime-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSendingRequest
-                        ? "Please wait..."
-                        : connectionStatus === "pending" && isIncomingRequest
-                          ? "Review request"
-                          : connectionStatus === "pending"
-                            ? "Cancel request"
-                            : connectionStatus === "accepted"
-                              ? "Disconnect"
+                          if (connectionStatus === "pending") {
+                            handleRemoveConnection();
+                            return;
+                          }
+
+                          handleConnect();
+                        }}
+                        disabled={isSendingRequest}
+                        className="rounded-xl bg-lime-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSendingRequest
+                          ? "Please wait..."
+                          : connectionStatus === "pending" && isIncomingRequest
+                            ? "Review request"
+                            : connectionStatus === "pending"
+                              ? "Cancel request"
                               : "Connect"}
-                    </button>
+                      </button>
+                    )}
 
                     <button
                       type="button"
