@@ -6,7 +6,10 @@ export function AppShell({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="app-shell"
-      className={cn("flex min-h-svh flex-col bg-background text-foreground", className)}
+      className={cn(
+        "relative isolate flex min-h-svh flex-col bg-background text-foreground",
+        className,
+      )}
       {...props}
     />
   );
