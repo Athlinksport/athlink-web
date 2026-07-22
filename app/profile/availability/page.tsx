@@ -199,29 +199,7 @@ export default function AvailabilityPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link href="/dashboard" className="text-2xl font-bold">
-            Athlink
-          </Link>
-
-          <nav className="flex items-center gap-5 text-sm text-slate-300">
-            <Link href="/dashboard" className="hover:text-white">
-              Dashboard
-            </Link>
-
-            <Link href="/rooms" className="hover:text-white">
-              Rooms
-            </Link>
-
-            <Link href="/profile" className="text-white">
-              Profile
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <main className="min-h-screen bg-transparent text-white">
       <section className="mx-auto max-w-5xl px-6 py-14">
         <div className="mb-10">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">

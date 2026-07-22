@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppNavbar from "@/components/AppNavbar";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -42,14 +43,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <AppNavbar />
+    <AppShell className="text-white">
+      <main className="min-h-screen">
+        <AppNavbar />
 
-      <section className="mx-auto max-w-7xl px-6 py-14">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">
-            Welcome to Athlink
-          </p>
+        <section className="mx-auto max-w-7xl px-6 py-14">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">
+              Welcome to Athlink
+            </p>
 
           <h1 className="mt-4 text-4xl font-bold">
             Welcome, {firstName}
@@ -105,8 +107,9 @@ export default function DashboardPage() {
               </p>
             </article>
           </div>
-        </div>
-      </section>
-    </main>
+          </div>
+        </section>
+      </main>
+    </AppShell>
   );
 }

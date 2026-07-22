@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import AppNavbar from "@/components/AppNavbar";
+import { AppShell } from "@/components/layout/app-shell";
 import { sports as allSports } from "@/data/sports";
 import PlayerCard, {
   PlayerCardData,
@@ -317,8 +318,9 @@ setPlayers(mappedPlayers);
   }, [players, sportFilter]);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <AppNavbar />
+    <AppShell className="text-white">
+      <main className="min-h-screen bg-transparent text-white">
+        <AppNavbar />
 
       <section className="mx-auto max-w-7xl px-6 py-14">
         <div>
@@ -416,7 +418,8 @@ setPlayers(mappedPlayers);
              ))}
            </div>
          )}
-      </section>
-    </main>
+        </section>
+      </main>
+    </AppShell>
   );
 }
