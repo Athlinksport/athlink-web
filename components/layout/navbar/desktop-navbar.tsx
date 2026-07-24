@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 
 import { BrandLink } from "@/components/layout/navbar/brand-link";
+import { MessagesButton } from "@/components/layout/navbar/messages-button";
 import { NavLinks } from "@/components/layout/navbar/nav-links";
 import type { NavigationItem } from "@/components/layout/navbar/navigation-items";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ type DesktopNavbarProps = {
   items: readonly NavigationItem[];
   pathname: string;
   pendingRequestsCount: number;
+  unreadCount: number;
   showLogout: boolean;
   onLogout: () => void;
 };
@@ -21,7 +23,8 @@ export function DesktopNavbar(props: DesktopNavbarProps) {
       <Surface variant="glass" className="rounded-2xl border-border/70 px-1.5 py-1">
         <NavLinks {...props} orientation="desktop" />
       </Surface>
-      <div className="justify-self-end">
+      <div className="flex items-center gap-1 justify-self-end">
+        <MessagesButton unreadCount={props.unreadCount} />
         {props.showLogout && (
           <Button variant="ghost" size="sm" onClick={props.onLogout} aria-label="Log out of Athlink">
             <LogOut aria-hidden="true" data-icon="inline-start" />

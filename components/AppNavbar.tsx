@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { DesktopNavbar } from "@/components/layout/navbar/desktop-navbar";
 import { MobileNavbar } from "@/components/layout/navbar/mobile-navbar";
 import { navigationItems } from "@/components/layout/navbar/navigation-items";
+import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import { createClient } from "@/lib/supabase/client";
 
 type AppNavbarProps = {
@@ -16,7 +17,13 @@ export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [supabase] = useState(createClient);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const { unreadCount } = useUnreadMessageCount(
+    supabase,
+    currentUserId,
+    pathname,
+  );
 
   useEffect(() => {
     async function loadPendingRequestsCount() {
@@ -25,9 +32,12 @@ export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
       } = await supabase.auth.getUser();
 
       if (!user) {
+        setCurrentUserId(null);
         setPendingRequestsCount(0);
         return;
       }
+
+      setCurrentUserId(user.id);
 
       const { count, error } = await supabase
         .from("connections")
@@ -58,6 +68,7 @@ export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
         items={navigationItems}
         pathname={pathname}
         pendingRequestsCount={pendingRequestsCount}
+        unreadCount={unreadCount}
         showLogout={showLogout}
         onLogout={handleLogout}
       />
@@ -65,6 +76,7 @@ export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
         items={navigationItems}
         pathname={pathname}
         pendingRequestsCount={pendingRequestsCount}
+        unreadCount={unreadCount}
         showLogout={showLogout}
         onLogout={handleLogout}
       />

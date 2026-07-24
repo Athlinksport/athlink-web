@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 
 import { BrandLink } from "@/components/layout/navbar/brand-link";
+import { MessagesButton } from "@/components/layout/navbar/messages-button";
 import { NavLinks } from "@/components/layout/navbar/nav-links";
 import type { NavigationItem } from "@/components/layout/navbar/navigation-items";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ type MobileNavbarProps = {
   items: readonly NavigationItem[];
   pathname: string;
   pendingRequestsCount: number;
+  unreadCount: number;
   showLogout: boolean;
   onLogout: () => void;
 };
@@ -70,10 +72,16 @@ export function MobileNavbar(props: MobileNavbarProps) {
           </div>
           {props.showLogout && (
             <SheetFooter className="border-t border-border px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <Button variant="outline" size="lg" className="w-full justify-start" onClick={handleLogout}>
-                <LogOut aria-hidden="true" data-icon="inline-start" />
-                Log out
-              </Button>
+              <div className="flex items-center gap-2">
+                <MessagesButton
+                  unreadCount={props.unreadCount}
+                  onNavigate={() => setOpen(false)}
+                />
+                <Button variant="outline" size="lg" className="flex-1 justify-start" onClick={handleLogout}>
+                  <LogOut aria-hidden="true" data-icon="inline-start" />
+                  Log out
+                </Button>
+              </div>
             </SheetFooter>
           )}
         </SheetContent>
