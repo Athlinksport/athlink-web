@@ -12,6 +12,7 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 const applicationRoutes = [
   "/dashboard",
   "/discover",
+  "/groups",
   "/connections",
   "/messages",
   "/players",

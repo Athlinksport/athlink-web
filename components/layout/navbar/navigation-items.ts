@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Compass, LayoutDashboard, UserRound, UsersRound } from "lucide-react";
+import { Compass, LayoutDashboard, ShieldHalf, UserRound, UsersRound } from "lucide-react";
 
 export type NavigationItem = {
   label: string;
@@ -11,6 +11,7 @@ export type NavigationItem = {
 export const navigationItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Discover", href: "/discover", icon: Compass },
+  { label: "Groups", href: "/groups", icon: ShieldHalf, matchChildren: true },
   { label: "Connections", href: "/connections", icon: UsersRound },
   { label: "Profile", href: "/profile", icon: UserRound, matchChildren: true },
 ] satisfies readonly NavigationItem[];
