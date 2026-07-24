@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import AppNavbar from "@/components/AppNavbar";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 type ProfileRow = {
   id: string;
@@ -85,11 +84,11 @@ function getInitials(name: string) {
 export default function PublicPlayerPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const supabase = createClient();
+  const { supabase, user, isAuthLoading } = useAuth();
 
   const playerId = params.id;
+  const currentUserId = user?.id ?? "";
 
-  const [currentUserId, setCurrentUserId] = useState("");
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [sports, setSports] = useState<SportRow[]>([]);
   const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
@@ -106,23 +105,22 @@ export default function PublicPlayerPage() {
   const [isIncomingRequest, setIsIncomingRequest] = useState(false);
 
   useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    const authenticatedUserId = user.id;
+
     async function loadPlayer() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-
-      setCurrentUserId(user.id);
       const { data: existingConnection, error: connectionError } =
         await supabase
           .from("connections")
           .select("status, sender_id, receiver_id")
           .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${playerId}),and(sender_id.eq.${playerId},receiver_id.eq.${user.id})`
+            `and(sender_id.eq.${authenticatedUserId},receiver_id.eq.${playerId}),and(sender_id.eq.${playerId},receiver_id.eq.${authenticatedUserId})`
           )
           .maybeSingle();
 
@@ -146,7 +144,7 @@ export default function PublicPlayerPage() {
         );
 
         setIsIncomingRequest(
-          existingConnection.receiver_id === user.id
+          existingConnection.receiver_id === authenticatedUserId
         );
       }
       const { data: profileData, error: profileError } =
@@ -183,7 +181,7 @@ export default function PublicPlayerPage() {
 
       if (
         profileData.profile_visibility !== "public" &&
-        profileData.id !== user.id
+        profileData.id !== authenticatedUserId
       ) {
         setMessage("This profile is not public.");
         setIsLoading(false);
@@ -234,7 +232,7 @@ export default function PublicPlayerPage() {
     }
 
     loadPlayer();
-  }, [playerId, router, supabase]);
+  }, [isAuthLoading, playerId, router, supabase, user]);
 
   const age = calculateAge(profile?.birth_date || null);
 
@@ -340,8 +338,6 @@ export default function PublicPlayerPage() {
   if (!profile || message) {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
-        <AppNavbar />
-
         <section className="mx-auto max-w-3xl px-6 py-20">
           <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
             <h1 className="text-2xl font-semibold">
@@ -366,8 +362,6 @@ export default function PublicPlayerPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <AppNavbar />
-
       <section className="mx-auto max-w-6xl px-6 py-14">
         <Link
           href="/discover"
