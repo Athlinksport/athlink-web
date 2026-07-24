@@ -21,6 +21,7 @@ export function MessagesButton({
   return (
     <Link
       href="/messages"
+      prefetch
       aria-label={label}
       onClick={onNavigate}
       className={cn(

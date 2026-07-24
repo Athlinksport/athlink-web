@@ -38,6 +38,7 @@ export function NavLinks({
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch
                 aria-current={active ? "page" : undefined}
                 onClick={onNavigate}
                 className={cn(

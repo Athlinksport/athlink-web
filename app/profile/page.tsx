@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
 
@@ -98,7 +98,7 @@ async function createCroppedImage(
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { supabase, user, isAuthLoading } = useAuth();
 
   const [userId, setUserId] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -134,26 +134,28 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadProfile() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
         router.replace("/login");
         return;
       }
 
-      setUserId(user.id);
-
       const userBirthDate = user.user_metadata?.birth_date || null;
-      setBirthDate(userBirthDate);
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle();
+
+      if (ignore) return;
+
+      setUserId(user.id);
+      setBirthDate(userBirthDate);
 
       if (error) {
         setMessage(error.message);
@@ -181,8 +183,12 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
 
-    loadProfile();
-  }, [router, supabase]);
+    void loadProfile();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthLoading, router, supabase, user]);
 
   function toggleLanguage(language: string) {
     setLanguages((current) =>
@@ -354,7 +360,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-transparent text-white">
         <p className="text-slate-400">Loading your profile...</p>
       </main>
     );

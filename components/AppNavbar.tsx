@@ -6,8 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { DesktopNavbar } from "@/components/layout/navbar/desktop-navbar";
 import { MobileNavbar } from "@/components/layout/navbar/mobile-navbar";
 import { navigationItems } from "@/components/layout/navbar/navigation-items";
+import { useAuth } from "@/hooks/use-auth";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
-import { createClient } from "@/lib/supabase/client";
 
 type AppNavbarProps = {
   showLogout?: boolean;
@@ -16,28 +16,24 @@ type AppNavbarProps = {
 export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [supabase] = useState(createClient);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { supabase, user, isAuthLoading } = useAuth();
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const { unreadCount } = useUnreadMessageCount(
     supabase,
-    currentUserId,
+    user?.id ?? null,
     pathname,
   );
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadPendingRequestsCount() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
-        setCurrentUserId(null);
-        setPendingRequestsCount(0);
+        if (!ignore) setPendingRequestsCount(0);
         return;
       }
-
-      setCurrentUserId(user.id);
 
       const { count, error } = await supabase
         .from("connections")
@@ -46,15 +42,21 @@ export default function AppNavbar({ showLogout = true }: AppNavbarProps) {
         .eq("status", "pending");
 
       if (error) {
-        console.error("Unable to load pending requests count:", error.message);
+        if (!ignore) {
+          console.error("Unable to load pending requests count:", error.message);
+        }
         return;
       }
 
-      setPendingRequestsCount(count ?? 0);
+      if (!ignore) setPendingRequestsCount(count ?? 0);
     }
 
-    loadPendingRequestsCount();
-  }, [supabase, pathname]);
+    void loadPendingRequestsCount();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthLoading, supabase, user]);
 
   async function handleLogout() {
     await supabase.auth.signOut();

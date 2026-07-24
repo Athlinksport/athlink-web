@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import AppNavbar from "@/components/AppNavbar";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 type ConnectionProfile = {
     display_name: string | null;
@@ -25,7 +24,7 @@ type ConnectionRequest = {
 
 export default function ConnectionsPage() {
     const router = useRouter();
-    const supabase = createClient();
+    const { supabase, user, isAuthLoading } = useAuth();
     const [sentRequests, setSentRequests] = useState<ConnectionRequest[]>([]);
 
     const [currentUserId, setCurrentUserId] = useState("");
@@ -35,35 +34,81 @@ export default function ConnectionsPage() {
     const [message, setMessage] = useState("");
 
     useEffect(() => {
+        let ignore = false;
+
         async function loadRequests() {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
+            if (isAuthLoading) return;
 
             if (!user) {
                 router.replace("/login");
                 return;
             }
 
-            setCurrentUserId(user.id);
+            const [
+                { data, error },
+                { data: sentData, error: sentError },
+                { data: connectionsData, error: connectionsError },
+            ] = await Promise.all([
+                supabase
+                    .from("connections")
+                    .select(`
+              id,
+              sender_id,
+              receiver_id,
+              status,
+              created_at,
+              sender:profiles!connections_sender_profile_fkey (
+                display_name,
+                avatar_url,
+                city_name
+              )
+            `)
+                    .eq("receiver_id", user.id)
+                    .eq("status", "pending")
+                    .order("created_at", { ascending: false }),
+                supabase
+                    .from("connections")
+                    .select(`
+              id,
+              sender_id,
+              status,
+              created_at,
+              receiver:profiles!connections_receiver_profile_fkey (
+                display_name,
+                avatar_url,
+                city_name
+              )
+            `)
+                    .eq("sender_id", user.id)
+                    .eq("status", "pending")
+                    .order("created_at", { ascending: false }),
+                supabase
+                    .from("connections")
+                    .select(`
+              id,
+              sender_id,
+              receiver_id,
+              status,
+              created_at,
+              sender:profiles!connections_sender_profile_fkey (
+                display_name,
+                avatar_url,
+                city_name
+              ),
+              receiver:profiles!connections_receiver_profile_fkey (
+                display_name,
+                avatar_url,
+                city_name
+              )
+            `)
+                    .eq("status", "accepted")
+                    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+                    .order("created_at", { ascending: false }),
+            ]);
 
-            const { data, error } = await supabase
-                .from("connections")
-                .select(`
-          id,
-          sender_id,
-          receiver_id,
-          status,
-          created_at,
-          sender:profiles!connections_sender_profile_fkey (
-            display_name,
-            avatar_url,
-            city_name
-          )
-        `)
-                .eq("receiver_id", user.id)
-                .eq("status", "pending")
-                .order("created_at", { ascending: false });
+            if (ignore) return;
+
+            setCurrentUserId(user.id);
 
             if (error) {
                 console.log("ERROR:", error);
@@ -75,22 +120,6 @@ export default function ConnectionsPage() {
             }
 
             setRequests((data || []) as unknown as ConnectionRequest[]);
-            const { data: sentData, error: sentError } = await supabase
-                .from("connections")
-                .select(`
-    id,
-    sender_id,
-    status,
-    created_at,
-    receiver:profiles!connections_receiver_profile_fkey (
-      display_name,
-      avatar_url,
-      city_name
-    )
-  `)
-                .eq("sender_id", user.id)
-                .eq("status", "pending")
-                .order("created_at", { ascending: false });
 
             if (sentError) {
                 console.error(sentError);
@@ -100,28 +129,6 @@ export default function ConnectionsPage() {
             }
 
             setSentRequests((sentData || []) as unknown as ConnectionRequest[]);
-            const { data: connectionsData, error: connectionsError } = await supabase
-                .from("connections")
-                .select(`
-        id,
-        sender_id,
-        receiver_id,
-        status,
-        created_at,
-        sender:profiles!connections_sender_profile_fkey (
-            display_name,
-            avatar_url,
-            city_name
-        ),
-        receiver:profiles!connections_receiver_profile_fkey (
-            display_name,
-            avatar_url,
-            city_name
-        )
-    `)
-                .eq("status", "accepted")
-                .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-                .order("created_at", { ascending: false });
 
             if (connectionsError) {
                 console.error(connectionsError);
@@ -136,8 +143,12 @@ export default function ConnectionsPage() {
             setIsLoading(false);
         }
 
-        loadRequests();
-    }, [router, supabase]);
+        void loadRequests();
+
+        return () => {
+            ignore = true;
+        };
+    }, [isAuthLoading, router, supabase, user]);
 
     async function updateRequest(
         requestId: string,
@@ -181,9 +192,7 @@ export default function ConnectionsPage() {
     }
 
     return (
-        <main className="min-h-screen bg-slate-950 text-white">
-            <AppNavbar />
-
+        <main className="min-h-screen bg-transparent text-white">
             <section className="mx-auto max-w-4xl px-6 py-14">
                 <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">

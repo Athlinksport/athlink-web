@@ -1,52 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import AppNavbar from "@/components/AppNavbar";
-import { AppShell } from "@/components/layout/app-shell";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const supabase = createClient();
-
-  const [firstName, setFirstName] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isAuthLoading } = useAuth();
 
   useEffect(() => {
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    if (isAuthLoading) return;
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-
-      setFirstName(user.user_metadata?.first_name || "Athlete");
-      setIsLoading(false);
+    if (!user) {
+      router.replace("/login");
     }
+  }, [isAuthLoading, router, user]);
 
-    loadUser();
-  }, [router, supabase]);
+  const firstName = user?.user_metadata?.first_name || "Athlete";
 
-  
-
-  if (isLoading) {
+  if (isAuthLoading || !user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-transparent text-white">
         <p className="text-slate-400">Loading your dashboard...</p>
       </main>
     );
   }
 
   return (
-    <AppShell className="text-white">
-      <main className="min-h-screen">
-        <AppNavbar />
-
+      <main className="min-h-screen bg-transparent">
         <section className="mx-auto max-w-7xl px-6 py-14">
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">
@@ -110,6 +92,5 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
-    </AppShell>
   );
 }

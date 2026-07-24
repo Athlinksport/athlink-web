@@ -1,12 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import AppNavbar from "@/components/AppNavbar";
-import { AppShell } from "@/components/layout/app-shell";
 import { sports as allSports } from "@/data/sports";
 import PlayerCard, {
   PlayerCardData,
 } from "@/components/PlayerCard";
+import { useAuth } from "@/hooks/use-auth";
 
 const examplePlayers: PlayerCardData[] = [
   {
@@ -144,55 +142,58 @@ function calculateAge(birthDate: string | null) {
 }
 
 export default function DiscoverPage() {
-const supabase = createClient();
+const { supabase, user, isAuthLoading } = useAuth();
 
 const [players, setPlayers] = useState<PlayerCardData[]>([]);
 const [isLoading, setIsLoading] = useState(true);
   const [sportFilter, setSportFilter] = useState("all");
 
 useEffect(() => {
+  let ignore = false;
+
   async function loadPlayers() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    if (isAuthLoading) return;
 
     if (!user) {
       return;
     }
     
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("languages, looking_for")
-      .eq("id", user.id)
-      .single();
-   
-    const { data: currentSports } = await supabase
-      .from("user_sports")
-      .select("sport_name")
-      .eq("user_id", user.id);
-    console.log(currentProfile);
-    console.log(currentSports);
-    console.log("Current user id:", user.id);
-
-    const { data: profiles, error: profilesError } = await supabase
-  .from("profiles")
-  .select(`
-    id,
-    display_name,
-    avatar_url,
-    birth_date,
-    bio,
-    city_name,
-    country_name,
-    languages,
-    looking_for
-  `)
-  .eq("profile_visibility", "public")
-  .neq("id", user.id);
+    const [
+      { data: currentProfile },
+      { data: currentSports },
+      { data: profiles, error: profilesError },
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("languages, looking_for")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("user_sports")
+        .select("sport_name")
+        .eq("user_id", user.id),
+      supabase
+        .from("profiles")
+        .select(`
+          id,
+          display_name,
+          avatar_url,
+          birth_date,
+          bio,
+          city_name,
+          country_name,
+          languages,
+          looking_for
+        `)
+        .eq("profile_visibility", "public")
+        .neq("id", user.id),
+    ]);
 
 if (profilesError) {
-  console.error(profilesError);
-  setIsLoading(false);
+  if (!ignore) {
+    console.error(profilesError);
+    setIsLoading(false);
+  }
   return;
 }
 
@@ -212,8 +213,10 @@ if (profileIds.length > 0) {
     .in("user_id", profileIds);
 
   if (sportsError) {
-    console.error(sportsError);
-    setIsLoading(false);
+    if (!ignore) {
+      console.error(sportsError);
+      setIsLoading(false);
+    }
     return;
   }
 
@@ -301,12 +304,18 @@ const mappedPlayers: PlayerCardData[] = (profiles || []).map((profile) => {
   };
 });
 
+if (ignore) return;
+
 setPlayers(mappedPlayers);
   setIsLoading(false);
 }
 
-  loadPlayers();
-}, []);
+  void loadPlayers();
+
+  return () => {
+    ignore = true;
+  };
+}, [isAuthLoading, supabase, user]);
   const filteredPlayers = useMemo(() => {
     if (sportFilter === "all") {
       return players;
@@ -318,10 +327,7 @@ setPlayers(mappedPlayers);
   }, [players, sportFilter]);
 
   return (
-    <AppShell className="text-white">
       <main className="min-h-screen bg-transparent text-white">
-        <AppNavbar />
-
       <section className="mx-auto max-w-7xl px-6 py-14">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-lime-400">
@@ -420,6 +426,5 @@ setPlayers(mappedPlayers);
          )}
         </section>
       </main>
-    </AppShell>
   );
 }

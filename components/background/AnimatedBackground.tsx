@@ -1,21 +1,23 @@
 "use client";
 
 import { BackgroundProvider } from "./BackgroundProvider";
-import { SceneRenderer } from "./SceneRenderer";
+import { GlobalBackground } from "./GlobalBackground";
+import { BackgroundProfilesProvider } from "./profiles/BackgroundProfilesProvider";
 
 /**
- * Reusable, non-interactive background layer for application shells.
- * Scene content is route-aware and isolated from page layout and pointer events.
+ * The single persistent, non-interactive background for the authenticated app.
  */
 export function AnimatedBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       data-slot="animated-background"
     >
       <BackgroundProvider>
-        <SceneRenderer />
+        <BackgroundProfilesProvider>
+          <GlobalBackground />
+        </BackgroundProfilesProvider>
       </BackgroundProvider>
     </div>
   );

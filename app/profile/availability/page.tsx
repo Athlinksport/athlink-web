@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 const days = [
   { value: 1, label: "Monday" },
@@ -45,7 +45,7 @@ type AvailabilityItem = {
 
 export default function AvailabilityPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { supabase, user, isAuthLoading } = useAuth();
 
   const [userId, setUserId] = useState("");
   const [availability, setAvailability] = useState<AvailabilityItem[]>([]);
@@ -56,22 +56,24 @@ export default function AvailabilityPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadAvailability() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
         router.replace("/login");
         return;
       }
 
-      setUserId(user.id);
-
       const { data, error } = await supabase
         .from("user_availability")
         .select("*")
         .eq("user_id", user.id);
+
+      if (ignore) return;
+
+      setUserId(user.id);
 
       if (error) {
         setMessage(error.message);
@@ -95,8 +97,12 @@ export default function AvailabilityPage() {
       setIsLoading(false);
     }
 
-    loadAvailability();
-  }, [router, supabase]);
+    void loadAvailability();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthLoading, router, supabase, user]);
 
   function isSelected(dayOfWeek: number, timePeriod: string) {
     return availability.some(
@@ -190,7 +196,7 @@ export default function AvailabilityPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-transparent text-white">
         <p className="text-slate-400">
           Loading your availability...
         </p>

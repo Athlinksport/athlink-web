@@ -1,6 +1,5 @@
 import type { ComponentProps } from "react";
 
-import { AnimatedBackground } from "@/components/background/AnimatedBackground";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
@@ -17,8 +16,7 @@ export function AppShell({
       )}
       {...props}
     >
-      <AnimatedBackground />
-      <div className="relative z-10 flex min-h-svh flex-col">{children}</div>
+      {children}
     </div>
   );
 }

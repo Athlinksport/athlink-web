@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Figtree } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ApplicationFrame } from "@/components/layout/application-frame";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
@@ -37,7 +38,9 @@ export default function RootLayout({
       )}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <ApplicationFrame>{children}</ApplicationFrame>
+        </TooltipProvider>
       </body>
     </html>
   );

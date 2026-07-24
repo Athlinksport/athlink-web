@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { sports, SportOption } from "@/data/sports";
+import { useAuth } from "@/hooks/use-auth";
 
 type SelectedSport = {
   sport: SportOption;
@@ -60,7 +60,7 @@ const frequencyOptions = [
 
 export default function SportsProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { supabase, user, isAuthLoading } = useAuth();
 
   const [userId, setUserId] = useState("");
   const [search, setSearch] = useState("");
@@ -70,23 +70,25 @@ export default function SportsProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadSports() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
         router.replace("/login");
         return;
       }
 
-      setUserId(user.id);
-
       const { data, error } = await supabase
         .from("user_sports")
         .select("*")
         .eq("user_id", user.id)
         .order("is_primary", { ascending: false });
+
+      if (ignore) return;
+
+      setUserId(user.id);
 
       if (error) {
         setMessage(error.message);
@@ -114,8 +116,12 @@ export default function SportsProfilePage() {
       setIsLoading(false);
     }
 
-    loadSports();
-  }, [router, supabase]);
+    void loadSports();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthLoading, router, supabase, user]);
 
   const filteredSports = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
@@ -281,7 +287,7 @@ export default function SportsProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-transparent text-white">
         <p className="text-slate-400">Loading your sports...</p>
       </main>
     );

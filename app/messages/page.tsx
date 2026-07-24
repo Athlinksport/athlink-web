@@ -4,7 +4,6 @@ import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import AppNavbar from "@/components/AppNavbar";
 import {
   MessageInbox,
   MessageInboxLoading,
@@ -15,11 +14,11 @@ import {
   getMessageInbox,
   type InboxConversation,
 } from "@/lib/messages/get-message-inbox";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function MessagesPage() {
   const router = useRouter();
-  const [supabase] = useState(createClient);
+  const { supabase, user, isAuthLoading } = useAuth();
   const [currentUserId, setCurrentUserId] = useState("");
   const [conversations, setConversations] = useState<InboxConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,9 +28,7 @@ export default function MessagesPage() {
     let ignore = false;
 
     async function loadInbox() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
         router.replace("/login");
@@ -59,12 +56,10 @@ export default function MessagesPage() {
     return () => {
       ignore = true;
     };
-  }, [router, supabase]);
+  }, [isAuthLoading, router, supabase, user]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <AppNavbar />
-
+    <main className="min-h-screen bg-transparent text-foreground">
       <section className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-6 sm:mb-8">
           <p className="text-sm font-semibold tracking-wide text-primary">

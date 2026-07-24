@@ -63,6 +63,7 @@ export function MessageInbox({
             <li key={conversation.id}>
               <Link
                 href={`/messages/${conversation.id}`}
+                prefetch
                 aria-label={`Open conversation with ${name}${
                   isUnread
                     ? `, ${conversation.unreadCount} unread messages`

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
-import AppNavbar from "@/components/AppNavbar";
 import {
   type ChatMessage,
   type ConversationUser,
@@ -11,7 +10,7 @@ import {
   MessageComposer,
   MessageList,
 } from "@/components/chat/DirectChat";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 type ConversationMember = {
   user_id: string;
@@ -20,7 +19,7 @@ type ConversationMember = {
 
 export default function MessagePage() {
   const params = useParams<{ id: string }>();
-  const [supabase] = useState(() => createClient());
+  const { supabase, user, isAuthLoading } = useAuth();
   const conversationId = params.id;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,20 +32,18 @@ export default function MessagePage() {
   const sendingRef = useRef(false);
 
   useEffect(() => {
+    let ignore = false;
+
     async function loadMessages() {
       setIsLoading(true);
       setErrorMessage("");
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (isAuthLoading) return;
 
       if (!user) {
         setIsLoading(false);
         return;
       }
-
-      setCurrentUserId(user.id);
 
       const { data: members, error: membersError } = await supabase
         .from("conversation_members")
@@ -60,6 +57,10 @@ export default function MessagePage() {
           )
         `)
         .eq("conversation_id", conversationId);
+
+      if (ignore) return;
+
+      setCurrentUserId(user.id);
 
       if (membersError) {
         setErrorMessage(membersError.message);
@@ -75,6 +76,8 @@ export default function MessagePage() {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
+      if (ignore) return;
+
       if (error) {
         setErrorMessage(error.message);
         setIsLoading(false);
@@ -85,8 +88,12 @@ export default function MessagePage() {
       setIsLoading(false);
     }
 
-    loadMessages();
-  }, [conversationId, supabase]);
+    void loadMessages();
+
+    return () => {
+      ignore = true;
+    };
+  }, [conversationId, isAuthLoading, supabase, user]);
 
   useEffect(() => {
     const channel = supabase
@@ -132,10 +139,6 @@ export default function MessagePage() {
     setErrorMessage("");
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
       if (!user) {
         setErrorMessage("You must be signed in to send a message.");
         return;
@@ -169,11 +172,9 @@ export default function MessagePage() {
   }
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      <AppNavbar />
-
+    <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent text-white">
       <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 px-0 py-0 sm:px-4 sm:py-4 lg:px-6">
-        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden border-white/10 bg-slate-950 sm:rounded-3xl sm:border sm:bg-slate-900/40 sm:shadow-2xl sm:shadow-black/20">
+        <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/95 sm:rounded-3xl sm:border sm:bg-slate-900/40 sm:shadow-2xl sm:shadow-black/20">
           <ConversationHeader otherUser={otherUser} />
           <MessageList
             messages={messages}
