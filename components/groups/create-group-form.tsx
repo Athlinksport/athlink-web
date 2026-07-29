@@ -58,6 +58,7 @@ export function CreateGroupForm() {
   const [avatar, setAvatar] = useState<ImageSelection | null>(null);
   const [cover, setCover] = useState<ImageSelection | null>(null);
   const [error, setError] = useState("");
+  const [countryError, setCountryError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionInProgress = useRef(false);
   const avatarPreviewUrlRef = useRef<string | null>(null);
@@ -97,6 +98,15 @@ export function CreateGroupForm() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!user || submissionInProgress.current) return;
+    const country = form.country.trim();
+    if (!country) {
+      setCountryError("Enter a country.");
+      return;
+    }
+    if (country.length < 2 || country.length > 100) {
+      setCountryError("Country must be between 2 and 100 characters.");
+      return;
+    }
     const validationError = validateGroup(form);
     if (validationError) { setError(validationError); return; }
     submissionInProgress.current = true;
@@ -104,7 +114,7 @@ export function CreateGroupForm() {
     setIsSubmitting(true);
     const { data, error: createError } = await supabase.rpc("create_group", {
       group_name: form.name.trim(), group_description: form.description.trim(), group_sport: form.sport,
-      group_country: form.country.trim(), group_city: form.city.trim() || null, group_privacy: form.privacy,
+      group_country: country, group_city: form.city.trim() || null, group_privacy: form.privacy,
       group_avatar_url: null, group_cover_image_url: null,
     });
     if (createError) {
@@ -171,7 +181,25 @@ export function CreateGroupForm() {
             <div className="grid gap-5 sm:grid-cols-2">
               <label><span className="mb-2 block text-sm font-medium">Primary sport</span><select required value={form.sport} onChange={(event) => set("sport", event.target.value)} className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"><option value="">Choose a sport</option>{sports.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
               <label><span className="mb-2 block text-sm font-medium">Privacy</span><select value={form.privacy} onChange={(event) => set("privacy", event.target.value as "public" | "private")} className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"><option value="public">Public — anyone can join</option><option value="private">Private — approve requests</option></select></label>
-              <label><span className="mb-2 block text-sm font-medium">Country</span><Input required maxLength={100} autoComplete="country-name" value={form.country} onChange={(event) => set("country", event.target.value)} placeholder="France" /></label>
+              <label>
+                <span className="mb-2 block text-sm font-medium">Country</span>
+                <Input
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  autoComplete="country-name"
+                  aria-invalid={Boolean(countryError)}
+                  aria-describedby={countryError ? "create-country-error" : undefined}
+                  value={form.country}
+                  onInvalid={() => setCountryError(form.country.trim() ? "Country must be between 2 and 100 characters." : "Enter a country.")}
+                  onChange={(event) => {
+                    set("country", event.target.value);
+                    setCountryError("");
+                  }}
+                  placeholder="France"
+                />
+                {countryError && <span id="create-country-error" className="mt-2 block text-xs text-destructive">{countryError}</span>}
+              </label>
               <label><span className="mb-2 block text-sm font-medium">City <span className="text-muted-foreground">(optional)</span></span><Input maxLength={100} autoComplete="address-level2" value={form.city} onChange={(event) => set("city", event.target.value)} placeholder="Toulouse" /></label>
             </div>
             <div className="grid gap-6 border-t border-white/10 pt-6 sm:grid-cols-[9rem_1fr]">

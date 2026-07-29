@@ -438,7 +438,7 @@ export function GlobalBackground() {
       aria-hidden="true"
     >
       <motion.div
-        className="absolute inset-0 will-change-transform"
+        className="absolute inset-0 opacity-[0.95] will-change-transform"
         style={{ y: reducedMotion ? 0 : farLayerY }}
       >
         <Glow className="-left-40 top-[12%] size-[28rem] bg-lime-400/[0.045] blur-[110px]" />
@@ -447,7 +447,7 @@ export function GlobalBackground() {
       </motion.div>
 
       <Network
-        className="inset-x-[3%] top-[5%] h-[90%] bg-none text-lime-200 opacity-100 will-change-transform [background-image:none] sm:inset-x-[8%]"
+        className="inset-x-[3%] top-[5%] h-[90%] bg-none text-lime-200 opacity-[0.95] will-change-transform [background-image:none] sm:inset-x-[8%]"
         style={{
           y: reducedMotion ? 0 : middleLayerY,
         }}
@@ -484,7 +484,7 @@ export function GlobalBackground() {
 
       <Particles
         count={5}
-        className="opacity-40 will-change-transform [&>span]:size-0.5 [&>span]:bg-lime-100/30"
+        className="opacity-[0.38] will-change-transform [&>span]:size-0.5 [&>span]:bg-lime-100/30"
         style={{ y: reducedMotion ? 0 : nearLayerY }}
       />
     </div>

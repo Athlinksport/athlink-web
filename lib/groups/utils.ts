@@ -72,11 +72,15 @@ export function validateGroup(input: CreateGroupInput) {
   if (input.description.trim().length < 20 || input.description.trim().length > GROUP_DESCRIPTION_MAX) {
     return `Description must be between 20 and ${GROUP_DESCRIPTION_MAX} characters.`;
   }
-  if (!input.sport.trim() || !input.country.trim()) {
+  const country = input.country.trim();
+  if (!input.sport.trim() || !country) {
     return "Choose a sport and enter a country.";
   }
-  if (input.city.trim().length > 100 || input.country.trim().length > 100) {
-    return "City and country must be 100 characters or fewer.";
+  if (country.length < 2 || country.length > 100) {
+    return "Country must be between 2 and 100 characters.";
+  }
+  if (input.city.trim().length > 100) {
+    return "City must be 100 characters or fewer.";
   }
   return null;
 }

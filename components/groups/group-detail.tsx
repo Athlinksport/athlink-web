@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CalendarDays, FileText, Info, LockKeyhole, MapPin, MessageSquareText, ShieldAlert, Trash2, UsersRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, FileText, Info, LockKeyhole, MapPin, MessageSquareText, Pencil, ShieldAlert, Trash2, UsersRound } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { GroupAvatar } from "@/components/groups/group-avatar";
@@ -257,7 +257,7 @@ export function GroupDetail() {
           <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
             <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex min-w-0 items-end gap-4"><GroupAvatar name={group.name} url={group.avatar_url} size="xl" /><div className="min-w-0 pb-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-lime-300/15 px-2.5 py-1 text-xs font-semibold text-lime-300">{group.sport}</span><span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs capitalize"><LockKeyhole className="size-3" />{group.privacy}</span></div><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-4xl">{group.name}</h1></div></div>
-              <MembershipButton supabase={supabase} groupId={group.id} privacy={group.privacy} membership={membership} onChange={(next) => { const wasActive = membership?.status === "active"; const isNowActive = next?.status === "active"; setMembership(next); if (wasActive !== isNowActive) setGroup((current) => current ? { ...current, member_count: Math.max(0, current.member_count + (isNowActive ? 1 : -1)) } : current); }} />
+              <div className="flex flex-wrap gap-2">{viewerRole === "owner" && <Button nativeButton={false} render={<Link href={`/groups/${group.id}/edit`} />} variant="outline"><Pencil />Edit group</Button>}<MembershipButton supabase={supabase} groupId={group.id} privacy={group.privacy} membership={membership} onChange={(next) => { const wasActive = membership?.status === "active"; const isNowActive = next?.status === "active"; setMembership(next); if (wasActive !== isNowActive) setGroup((current) => current ? { ...current, member_count: Math.max(0, current.member_count + (isNowActive ? 1 : -1)) } : current); }} /></div>
             </div>
             <p className="mt-5 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">{group.description}</p>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground"><span className="inline-flex items-center gap-1.5"><MapPin className="size-4" />{[group.city, group.country].filter(Boolean).join(", ")}</span><span className="inline-flex items-center gap-1.5"><UsersRound className="size-4" />{group.member_count} members</span><span className="inline-flex items-center gap-1.5"><FileText className="size-4" />{group.post_count} posts</span><span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" />Created {relativeTime(group.created_at)}</span></div>
