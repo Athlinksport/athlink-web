@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 type MessageInboxProps = {
   conversations: InboxConversation[];
   currentUserId: string;
+  conversationBasePath?: "/messages" | "/rooms";
 };
 
 function formatMessageTime(value: string) {
@@ -34,6 +35,7 @@ function formatMessageTime(value: string) {
 export function MessageInbox({
   conversations,
   currentUserId,
+  conversationBasePath = "/messages",
 }: MessageInboxProps) {
   if (conversations.length === 0) {
     return (
@@ -62,7 +64,7 @@ export function MessageInbox({
           return (
             <li key={conversation.id}>
               <Link
-                href={`/messages/${conversation.id}`}
+                href={`${conversationBasePath}/${conversation.id}`}
                 prefetch
                 aria-label={`Open conversation with ${name}${
                   isUnread

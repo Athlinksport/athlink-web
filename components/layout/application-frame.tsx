@@ -15,6 +15,7 @@ const applicationRoutes = [
   "/groups",
   "/connections",
   "/messages",
+  "/rooms",
   "/players",
   "/profile",
 ] as const;
