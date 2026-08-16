@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -111,10 +112,7 @@ export default function ConnectionsPage() {
             setCurrentUserId(user.id);
 
             if (error) {
-                console.log("ERROR:", error);
-                alert(JSON.stringify(error, null, 2));
-
-                setMessage(error.message);
+                setMessage("Connection requests could not be loaded. Please try again.");
                 setIsLoading(false);
                 return;
             }
@@ -122,8 +120,7 @@ export default function ConnectionsPage() {
             setRequests((data || []) as unknown as ConnectionRequest[]);
 
             if (sentError) {
-                console.error(sentError);
-                setMessage(sentError.message);
+                setMessage("Sent connection requests could not be loaded. Please try again.");
                 setIsLoading(false);
                 return;
             }
@@ -131,8 +128,7 @@ export default function ConnectionsPage() {
             setSentRequests((sentData || []) as unknown as ConnectionRequest[]);
 
             if (connectionsError) {
-                console.error(connectionsError);
-                setMessage(connectionsError.message);
+                setMessage("Connections could not be loaded. Please try again.");
                 setIsLoading(false);
                 return;
             }
@@ -164,7 +160,7 @@ export default function ConnectionsPage() {
             .eq("id", requestId);
 
         if (error) {
-            setMessage(error.message);
+            setMessage("The connection request could not be updated. Please try again.");
             return;
         }
 
@@ -182,7 +178,7 @@ export default function ConnectionsPage() {
             .eq("id", requestId);
 
         if (error) {
-            setMessage(error.message);
+            setMessage("The connection request could not be cancelled. Please try again.");
             return;
         }
 
@@ -249,9 +245,11 @@ export default function ConnectionsPage() {
                                     <div className="flex items-center gap-4">
                                         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-800">
                                             {request.sender?.avatar_url ? (
-                                                <img
+                                                <Image
                                                     src={request.sender.avatar_url}
                                                     alt={name}
+                                                    width={64}
+                                                    height={64}
                                                     className="h-full w-full object-cover"
                                                 />
                                             ) : (
@@ -345,9 +343,11 @@ export default function ConnectionsPage() {
                                         <div className="flex items-center gap-4">
                                             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-800">
                                                 {request.receiver?.avatar_url ? (
-                                                    <img
+                                                    <Image
                                                         src={request.receiver.avatar_url}
                                                         alt={name}
+                                                        width={64}
+                                                        height={64}
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
@@ -445,9 +445,11 @@ export default function ConnectionsPage() {
                                             <div className="flex items-center gap-4">
                                                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-800">
                                                     {profile?.avatar_url ? (
-                                                        <img
+                                                        <Image
                                                             src={profile.avatar_url}
                                                             alt={name}
+                                                            width={64}
+                                                            height={64}
                                                             className="h-full w-full object-cover"
                                                         />
                                                     ) : (

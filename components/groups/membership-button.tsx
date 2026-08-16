@@ -32,7 +32,7 @@ export function MembershipButton({
     setError("");
     setIsWorking(true);
     const { data, error: joinError } = await supabase.rpc("join_group", { target_group: groupId });
-    if (joinError) setError(joinError.message);
+    if (joinError) setError("The group could not be joined. Please try again.");
     else {
       const row = data as MembershipSummary;
       onChange({ id: row.id, role: row.role, status: row.status });
@@ -45,7 +45,7 @@ export function MembershipButton({
     setError("");
     setIsWorking(true);
     const { error: leaveError } = await supabase.rpc("leave_group", { target_group: groupId });
-    if (leaveError) setError(leaveError.message);
+    if (leaveError) setError("The group could not be left. Please try again.");
     else onChange(null);
     setIsWorking(false);
   }

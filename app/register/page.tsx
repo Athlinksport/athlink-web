@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { safeAuthError } from "@/lib/auth/validation";
 
 export default function RegisterPage() {
     const supabase = createClient();
@@ -75,7 +76,7 @@ if (!isValidDate) {
 
   options: {
 
-    emailRedirectTo: `${window.location.origin}/login`,
+    emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
 
     data: {
 
@@ -92,7 +93,7 @@ if (!isValidDate) {
 });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(safeAuthError(error.message));
       return;
     }
 
@@ -380,7 +381,7 @@ if (!isValidDate) {
                   <span>
                     I agree to follow the{" "}
                     <Link
-                      href="/community-guidelines"
+                      href="/safety"
                       className="font-medium text-lime-400 hover:text-lime-300"
                     >
                       Community Guidelines

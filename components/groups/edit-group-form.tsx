@@ -97,7 +97,7 @@ export function EditGroupForm() {
     let active = true;
     void supabase.from("groups").select("*").eq("id", groupId).maybeSingle().then(({ data, error: loadError }) => {
       if (!active) return;
-      if (loadError || !data) setError(loadError?.message ?? "Group not found.");
+      if (loadError || !data) setError(loadError ? "The group could not be loaded. Please try again." : "Group not found.");
       else if (data.owner_id !== user.id) setError("Only the group owner can edit this group.");
       else {
         const loaded = data as Group;
@@ -222,9 +222,9 @@ export function EditGroupForm() {
       setAvatarRemoved(false);
       setCoverRemoved(false);
       setSuccess(result.cleanupWarning?.message ?? "Group updated successfully.");
-    } catch (submitError) {
+    } catch {
       await cleanup(uploaded);
-      setError(submitError instanceof Error ? submitError.message : "The group could not be updated.");
+      setError("The group could not be updated. Please try again.");
     } finally {
       submissionRef.current = false;
       setIsSubmitting(false);

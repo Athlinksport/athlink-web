@@ -7,6 +7,7 @@ import { Heart, MessageCircle, MoreHorizontal, Pin, Save, Trash2, X } from "luci
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CommentsThread } from "@/components/groups/comments-thread";
+import { ReportDialog } from "@/components/safety/report-dialog";
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/ui/inline-error";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,13 +47,13 @@ export function PostCard({
     const next = { ...post, viewer_has_liked: !post.viewer_has_liked, like_count: Math.max(0, post.like_count + (post.viewer_has_liked ? -1 : 1)) };
     onUpdate(next);
     const result = post.viewer_has_liked ? await supabase.from("group_post_likes").delete().eq("post_id", post.id).eq("user_id", userId) : await supabase.from("group_post_likes").insert({ post_id: post.id, user_id: userId });
-    if (result.error) { onUpdate(post); setError(result.error.message); }
+    if (result.error) { onUpdate(post); setError("The post reaction could not be updated. Please try again."); }
   }
   async function save() {
     const trimmed = draft.trim();
     if (!trimmed) return;
     const { data, error: updateError } = await supabase.from("group_posts").update({ content: trimmed }).eq("id", post.id).select("*").single();
-    if (updateError) setError(updateError.message);
+    if (updateError) setError("The post could not be updated. Please try again.");
     else { onUpdate({ ...post, ...(data as GroupPost), image_url: post.image_url }); setEditing(false); }
   }
   async function remove() {
@@ -86,7 +87,7 @@ export function PostCard({
   }
   async function togglePin() {
     const { data, error: pinError } = await supabase.rpc("set_group_post_pinned", { target_post: post.id, pinned: !post.is_pinned });
-    if (pinError) setError(pinError.message); else onUpdate({ ...post, ...(data as GroupPost), image_url: post.image_url });
+    if (pinError) setError("The post pin could not be updated. Please try again."); else onUpdate({ ...post, ...(data as GroupPost), image_url: post.image_url });
   }
 
   return (
@@ -106,6 +107,7 @@ export function PostCard({
       <div className="flex items-center gap-1 border-t border-white/8 px-3 py-2">
         {isActiveMember ? <Button variant="ghost" size="sm" aria-label={`${post.viewer_has_liked ? "Unlike" : "Like"} post`} onClick={() => void toggleLike()} className={post.viewer_has_liked ? "text-lime-300" : ""}><Heart className={post.viewer_has_liked ? "fill-current" : ""} />{post.like_count} {post.like_count === 1 ? "like" : "likes"}</Button> : <span className="px-3 py-2 text-sm text-muted-foreground">{post.like_count} {post.like_count === 1 ? "like" : "likes"}</span>}
         <Button variant="ghost" size="sm" aria-expanded={commentsOpen} aria-controls={`comments-${post.id}`} onClick={() => setCommentsOpen((value) => !value)}><MessageCircle />{post.comment_count} comments</Button>
+        <ReportDialog targetType="post" targetId={post.id} />
       </div>
       {commentsOpen && <CommentsThread supabase={supabase} postId={post.id} userId={userId} currentProfile={currentProfile} viewerRole={viewerRole} isActiveMember={isActiveMember} onCountChange={(delta) => onUpdate({ ...post, comment_count: Math.max(0, post.comment_count + delta) })} />}
     </article>

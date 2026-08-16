@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { ReportDialog } from "@/components/safety/report-dialog";
 
 type ProfileRow = {
   id: string;
@@ -103,6 +105,7 @@ export default function PublicPlayerPage() {
   >("none");
 
   const [isIncomingRequest, setIsIncomingRequest] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -115,6 +118,8 @@ export default function PublicPlayerPage() {
     const authenticatedUserId = user.id;
 
     async function loadPlayer() {
+      const { data: block } = await supabase.from("user_blocks").select("id").eq("blocker_id", authenticatedUserId).eq("blocked_id", playerId).maybeSingle();
+      setIsBlocked(Boolean(block));
       const { data: existingConnection, error: connectionError } =
         await supabase
           .from("connections")
@@ -168,7 +173,7 @@ export default function PublicPlayerPage() {
           .maybeSingle();
 
       if (profileError) {
-        setMessage(profileError.message);
+        setMessage("This athlete profile could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -207,7 +212,7 @@ export default function PublicPlayerPage() {
           .order("is_primary", { ascending: false });
 
       if (sportsError) {
-        setMessage(sportsError.message);
+        setMessage("This athlete’s sports could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -220,7 +225,7 @@ export default function PublicPlayerPage() {
           .order("day_of_week", { ascending: true });
 
       if (availabilityError) {
-        setMessage(availabilityError.message);
+        setMessage("This athlete’s availability could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -273,7 +278,7 @@ export default function PublicPlayerPage() {
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage("The connection request could not be sent. Please try again.");
       setIsSendingRequest(false);
       return;
     }
@@ -300,7 +305,7 @@ export default function PublicPlayerPage() {
       );
 
     if (error) {
-      setMessage(error.message);
+      setMessage("The connection request could not be cancelled. Please try again.");
       return;
     }
 
@@ -319,11 +324,23 @@ export default function PublicPlayerPage() {
     );
 
     if (error) {
-      setMessage(error.message);
+      setMessage("The conversation could not be opened. Please try again.");
       return;
     }
 
-    router.push(`/messages/${data}`);
+    router.push(`/rooms/${data}`);
+  }
+
+  async function handleBlock() {
+    const response = await fetch(isBlocked ? `/api/safety/blocks?targetId=${playerId}` : "/api/safety/blocks", {
+      method: isBlocked ? "DELETE" : "POST",
+      headers: { "content-type": "application/json" },
+      body: isBlocked ? undefined : JSON.stringify({ targetId: playerId }),
+    });
+    const result = await response.json();
+    if (!response.ok) return setMessage(result.error ?? "Block setting could not be changed.");
+    setIsBlocked(!isBlocked);
+    if (!isBlocked) { setConnectionStatus("none"); setIsIncomingRequest(false); }
   }
 
 
@@ -375,9 +392,11 @@ export default function PublicPlayerPage() {
             <div className="flex min-h-64 items-center justify-center">
               <div className="flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border-4 border-white/10 bg-slate-800 shadow-2xl shadow-black/30">
                 {profile.avatar_url ? (
-                  <img
+                  <Image
                     src={profile.avatar_url}
                     alt={`${displayName} profile`}
+                    width={160}
+                    height={160}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -468,12 +487,8 @@ export default function PublicPlayerPage() {
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      className="rounded-xl border border-white/10 px-6 py-3 font-semibold text-slate-200 transition hover:bg-white/5"
-                    >
-                      Save
-                    </button>
+                    <button type="button" onClick={() => void handleBlock()} className="rounded-xl border border-white/10 px-5 py-3 font-semibold text-slate-200 transition hover:bg-white/5">{isBlocked ? "Unblock" : "Block"}</button>
+                    <ReportDialog targetType="user" targetId={playerId} />
                   </>
                 )}
               </div>

@@ -91,7 +91,7 @@ export default function SportsProfilePage() {
       setUserId(user.id);
 
       if (error) {
-        setMessage(error.message);
+        setMessage("Your sports could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -253,7 +253,7 @@ export default function SportsProfilePage() {
       .eq("user_id", userId);
 
     if (deleteError) {
-      setMessage(deleteError.message);
+      setMessage("Your existing sports could not be updated. Please try again.");
       setIsSaving(false);
       return;
     }
@@ -276,7 +276,7 @@ export default function SportsProfilePage() {
       .insert(rows);
 
     if (insertError) {
-      setMessage(insertError.message);
+      setMessage("Your sports could not be saved. Please try again.");
       setIsSaving(false);
       return;
     }

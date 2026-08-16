@@ -76,7 +76,7 @@ export default function AvailabilityPage() {
       setUserId(user.id);
 
       if (error) {
-        setMessage(error.message);
+        setMessage("Your availability could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -164,7 +164,7 @@ export default function AvailabilityPage() {
         .eq("user_id", userId);
 
       if (deleteError) {
-        setMessage(deleteError.message);
+        setMessage("Your existing availability could not be updated. Please try again.");
         return;
       }
 
@@ -181,7 +181,7 @@ export default function AvailabilityPage() {
           .insert(rows);
 
         if (insertError) {
-          setMessage(insertError.message);
+          setMessage("Your availability could not be saved. Please try again.");
           return;
         }
       }

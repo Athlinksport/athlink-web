@@ -18,6 +18,8 @@ const applicationRoutes = [
   "/rooms",
   "/players",
   "/profile",
+  "/settings",
+  "/admin",
 ] as const;
 
 function isApplicationRoute(pathname: string) {

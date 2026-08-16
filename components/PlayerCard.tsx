@@ -1,10 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export type PlayerCardData = {
   id: string;
   displayName: string;
   age?: number;
   city?: string;
+  country?: string;
   distanceKm?: number;
   bio?: string;
 
@@ -123,9 +125,11 @@ export default function PlayerCard({ player }: PlayerCardProps) {
       {/* Profile image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-800">
         {player.profileImageUrl ? (
-          <img
+          <Image
             src={player.profileImageUrl}
             alt={`${player.displayName} profile`}
+            fill
+            sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (

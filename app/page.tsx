@@ -14,7 +14,7 @@ export default function Home() {
           </a>
 
           <a className="transition hover:text-white" href="#rooms">
-            Rooms
+            Community
           </a>
 
           <a className="transition hover:text-white" href="#safety">
@@ -64,10 +64,10 @@ export default function Home() {
 </Link>
 
             <Link
-  href="/rooms"
+  href="/register"
   className="rounded-full border border-white/20 px-7 py-4 font-semibold transition hover:bg-white/10"
 >
-  Explore rooms
+  Join the community
 </Link>
           </div>
 
@@ -84,14 +84,14 @@ export default function Home() {
           <div className="relative rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Activity near you</p>
+                <p className="text-sm text-slate-400">Example community activity</p>
                 <h2 className="mt-1 text-2xl font-semibold">
-                  Running in Toulouse
+                  Weekend community run
                 </h2>
               </div>
 
               <div className="rounded-full bg-lime-400/15 px-3 py-1 text-sm text-lime-300">
-                3 km away
+                Preview
               </div>
             </div>
 
@@ -102,9 +102,9 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold">Canal du Midi Run</h3>
+                  <h3 className="font-semibold">Local group run</h3>
                   <p className="mt-1 text-sm text-slate-400">
-                    Sunday · 9:00 AM · Intermediate
+                    Sample schedule · Intermediate
                   </p>
                 </div>
               </div>
@@ -116,19 +116,22 @@ export default function Home() {
                 </div>
 
                 <div className="rounded-xl bg-white/5 p-3">
-                  <p className="text-lg font-semibold">6</p>
-                  <p className="text-xs text-slate-400">Members</p>
+                  <p className="text-lg font-semibold">Group</p>
+                  <p className="text-xs text-slate-400">Format</p>
                 </div>
 
                 <div className="rounded-xl bg-white/5 p-3">
-                  <p className="text-lg font-semibold">2</p>
-                  <p className="text-xs text-slate-400">Spots left</p>
+                  <p className="text-lg font-semibold">Local</p>
+                  <p className="text-xs text-slate-400">Community</p>
                 </div>
               </div>
 
-              <button className="mt-6 w-full rounded-xl bg-white py-3 font-semibold text-slate-950 transition hover:bg-slate-200">
-                Join this room
-              </button>
+              <Link
+                href="/register"
+                className="mt-6 block w-full rounded-xl bg-white py-3 text-center font-semibold text-slate-950 transition hover:bg-slate-200"
+              >
+                Create your profile
+              </Link>
             </div>
           </div>
         </div>
@@ -186,6 +189,37 @@ export default function Home() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+      <section id="rooms" className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <p className="text-sm font-semibold uppercase tracking-widest text-lime-400">
+            Community
+          </p>
+          <h2 className="mt-4 max-w-2xl text-4xl font-bold">
+            Train together, then keep the conversation going
+          </h2>
+          <p className="mt-4 max-w-2xl leading-7 text-slate-400">
+            Connect with compatible athletes, join interest groups, and use
+            private rooms to coordinate with accepted connections.
+          </p>
+        </div>
+      </section>
+      <section id="safety" className="border-t border-white/10 bg-slate-900/50">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <p className="text-sm font-semibold uppercase tracking-widest text-lime-400">
+            Safety
+          </p>
+          <h2 className="mt-4 max-w-2xl text-4xl font-bold">
+            Controls for a respectful sports community
+          </h2>
+          <p className="mt-4 max-w-2xl leading-7 text-slate-400">
+            Athlink includes connection-only direct messaging, blocking,
+            reporting, and moderation tools.
+          </p>
+          <Link href="/safety" className="mt-6 inline-flex font-semibold text-lime-300 hover:text-lime-200">
+            Read the safety guidance
+          </Link>
         </div>
       </section>
     </main>

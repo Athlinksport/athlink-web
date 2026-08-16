@@ -8,6 +8,7 @@ import {
   MESSAGES_READ_EVENT,
   type MessagesReadEventDetail,
 } from "@/lib/messages/constants";
+import { applyConfirmedUnreadCount } from "@/lib/messages/validation";
 
 export function useUnreadMessageCount(
   supabase: SupabaseClient,
@@ -92,7 +93,7 @@ export function useUnreadMessageCount(
       if (typeof confirmedUnreadCount === "number") {
         readResultGenerationRef.current += 1;
         requestGenerationRef.current += 1;
-        setUnreadCount(confirmedUnreadCount);
+        setUnreadCount((current) => applyConfirmedUnreadCount(current, confirmedUnreadCount));
       }
       refresh();
     }

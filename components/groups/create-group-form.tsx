@@ -119,7 +119,7 @@ export function CreateGroupForm() {
     });
     if (createError) {
       submissionInProgress.current = false;
-      setError(createError.message);
+      setError("The group could not be created. Please try again.");
       setIsSubmitting(false);
       return;
     }

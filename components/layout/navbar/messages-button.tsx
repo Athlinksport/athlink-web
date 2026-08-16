@@ -20,7 +20,7 @@ export function MessagesButton({
 
   return (
     <Link
-      href="/messages"
+      href="/rooms"
       prefetch
       aria-label={label}
       onClick={onNavigate}

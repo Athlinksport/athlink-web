@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
-import {
-  DIRECT_MESSAGE_MAX_LENGTH,
-  DIRECT_MESSAGE_PAGE_SIZE,
-} from "@/lib/messages/constants";
+import { DIRECT_MESSAGE_PAGE_SIZE } from "@/lib/messages/constants";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { validateDirectMessage } from "@/lib/messages/validation";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -137,14 +135,8 @@ export async function POST(
     && typeof (input as { content?: unknown }).content === "string"
     ? (input as { content: string }).content.trim()
     : "";
-  if (!content) {
-    return NextResponse.json({ error: "Message cannot be empty." }, { status: 400 });
-  }
-  if (content.length > DIRECT_MESSAGE_MAX_LENGTH) {
-    return NextResponse.json({
-      error: `Message must be ${DIRECT_MESSAGE_MAX_LENGTH} characters or fewer.`,
-    }, { status: 400 });
-  }
+  const validationError = validateDirectMessage(content);
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
 
   const { data, error } = await supabase
     .from("messages")

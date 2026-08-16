@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeAuthError, validateEmail } from "@/lib/auth/validation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,16 +23,20 @@ export default function LoginPage() {
     try {
       const formData = new FormData(event.currentTarget);
 
-      const email = String(formData.get("email") || "").trim();
+      const emailResult = validateEmail(formData.get("email"));
       const password = String(formData.get("password") || "");
+      if (!emailResult.ok) {
+        setMessage(emailResult.error);
+        return;
+      }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailResult.value,
         password,
       });
 
       if (error) {
-        setMessage(error.message);
+        setMessage(safeAuthError(error.message));
         return;
       }
 
@@ -103,12 +108,12 @@ export default function LoginPage() {
                     Password
                   </label>
 
-                  <button
-                    type="button"
+                  <Link
+                    href="/forgot-password"
                     className="text-sm font-medium text-lime-400 hover:text-lime-300"
                   >
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="relative">
@@ -133,14 +138,6 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-
-              <label className="flex items-center gap-3 text-sm text-slate-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-lime-400"
-                />
-                Remember me
-              </label>
 
               {message && (
                 <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">

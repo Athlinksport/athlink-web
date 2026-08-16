@@ -62,9 +62,9 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-figtree);
-  --font-sans: var(--font-figtree);
-  --font-mono: var(--font-geist-mono);
+  --font-heading: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --color-app-background: var(--app-background);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChangeEvent,
   FormEvent,
@@ -46,7 +47,7 @@ async function createCroppedImage(
   imageSource: string,
   cropPixels: Area
 ): Promise<File> {
-  const image = new Image();
+  const image = new window.Image();
   image.src = imageSource;
 
   await new Promise<void>((resolve, reject) => {
@@ -122,8 +123,6 @@ export default function ProfilePage() {
 
   const [zoom, setZoom] = useState(1);
 
-  const [rotation, setRotation] = useState(0);
-
   const [croppedAreaPixels, setCroppedAreaPixels] =
     useState<Area | null>(null);
 
@@ -158,7 +157,7 @@ export default function ProfilePage() {
       setBirthDate(userBirthDate);
 
       if (error) {
-        setMessage(error.message);
+        setMessage("Your profile could not be loaded. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -230,7 +229,6 @@ export default function ProfilePage() {
     setCropImageUrl(objectUrl);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
-    setRotation(0);
     setCroppedAreaPixels(null);
 
     event.target.value = "";
@@ -266,7 +264,7 @@ export default function ProfilePage() {
       });
 
     if (uploadError) {
-      setMessage(uploadError.message);
+      setMessage("Your profile photo could not be uploaded. Please try again.");
       setIsUploadingAvatar(false);
       return;
     }
@@ -286,7 +284,7 @@ export default function ProfilePage() {
       .eq("id", userId);
 
     if (profileError) {
-      setMessage(profileError.message);
+      setMessage("Your profile photo was uploaded, but the profile could not be updated.");
       setIsUploadingAvatar(false);
       return;
     }
@@ -294,13 +292,6 @@ export default function ProfilePage() {
     setAvatarUrl(publicUrl);
     setMessage("Profile photo uploaded successfully.");
     setIsUploadingAvatar(false);
-  }
-
-  function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadAvatarFile(file);
-    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -349,7 +340,7 @@ export default function ProfilePage() {
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage("Your profile could not be saved. Please try again.");
       setIsSaving(false);
       return;
     }
@@ -428,9 +419,11 @@ export default function ProfilePage() {
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
               <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-slate-900">
                 {avatarUrl ? (
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt="Profile"
+                    width={112}
+                    height={112}
                     className="h-full w-full object-cover"
                   />
                 ) : (

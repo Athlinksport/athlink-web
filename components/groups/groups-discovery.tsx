@@ -69,7 +69,7 @@ export function GroupsDiscovery({ cleanupWarning = "" }: { cleanupWarning?: stri
     const [{ data: rows, error: groupsError }, { data: memberships, error: membershipError }] = await Promise.all([groupQuery, membershipQuery]);
     if (!isMounted.current || generation !== requestGeneration.current) return;
     if (groupsError || membershipError) {
-      setError(groupsError?.message ?? membershipError?.message ?? "Groups could not be loaded.");
+      setError("Groups could not be loaded. Please try again.");
       setIsLoading(false);
       return;
     }

@@ -6,6 +6,7 @@ import { CornerDownRight, Heart, LoaderCircle, Pencil, Save, Send, Trash2, X } f
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { Button } from "@/components/ui/button";
+import { ReportDialog } from "@/components/safety/report-dialog";
 import { InlineError } from "@/components/ui/inline-error";
 import { Textarea } from "@/components/ui/textarea";
 import { COMMENT_PAGE_SIZE, GROUP_COMMENT_MAX } from "@/lib/groups/constants";
@@ -50,7 +51,7 @@ export function CommentsThread({
       .is("parent_comment_id", null)
       .order("created_at", { ascending: false })
       .range(nextPage * COMMENT_PAGE_SIZE, (nextPage + 1) * COMMENT_PAGE_SIZE - 1);
-    if (rootsError) { setError(rootsError.message); setIsLoading(false); return; }
+    if (rootsError) { setError("Comments could not be loaded. Please try again."); setIsLoading(false); return; }
     const roots = rootRows ?? [];
     const rootIds = roots.map((item) => item.id);
     const { data: replyRows, error: repliesError } = rootIds.length
@@ -60,7 +61,7 @@ export function CommentsThread({
           .in("parent_comment_id", rootIds)
           .order("created_at", { ascending: true })
       : { data: [], error: null };
-    if (repliesError) { setError(repliesError.message); setIsLoading(false); return; }
+    if (repliesError) { setError("Replies could not be loaded. Please try again."); setIsLoading(false); return; }
     const rows = [...roots, ...(replyRows ?? [])];
     const authorIds = [...new Set(rows.map((item) => item.author_id))];
     const commentIds = rows.map((item) => item.id);
@@ -130,7 +131,7 @@ export function CommentsThread({
     const { data, error: insertError } = await supabase.from("group_post_comments").insert({ post_id: postId, author_id: userId, parent_comment_id: optimistic.parent_comment_id, content: trimmed }).select("*").single();
     if (insertError) {
       setComments((current) => current.filter((item) => item.id !== optimistic.id));
-      onCountChange(-1); setContent(trimmed); setError(insertError.message);
+      onCountChange(-1); setContent(trimmed); setError("Your comment could not be posted. Please try again.");
     } else setComments((current) => current.map((item) => item.id === optimistic.id ? { ...(data as GroupComment), author: currentProfile, viewer_has_liked: false } : item));
     setIsSubmitting(false);
   }
@@ -142,12 +143,12 @@ export function CommentsThread({
     const liked = comment.viewer_has_liked;
     setComments((current) => current.map((item) => item.id === comment.id ? { ...item, viewer_has_liked: !liked, like_count: Math.max(0, item.like_count + (liked ? -1 : 1)) } : item));
     const result = liked ? await supabase.from("group_comment_likes").delete().eq("comment_id", comment.id).eq("user_id", userId) : await supabase.from("group_comment_likes").insert({ comment_id: comment.id, user_id: userId });
-    if (result.error) { setComments((current) => current.map((item) => item.id === comment.id ? comment : item)); setError(result.error.message); }
+    if (result.error) { setComments((current) => current.map((item) => item.id === comment.id ? comment : item)); setError("The comment could not be liked. Please try again."); }
   }
   async function remove(comment: GroupComment) {
     if (!window.confirm("Delete this comment?")) return;
     const { error: deleteError } = await supabase.from("group_post_comments").delete().eq("id", comment.id);
-    if (deleteError) { setError(deleteError.message); return; }
+    if (deleteError) { setError("The comment could not be deleted. Please try again."); return; }
     const removed = comments.filter((item) => item.id === comment.id || item.parent_comment_id === comment.id).length;
     setComments((current) => current.filter((item) => item.id !== comment.id && item.parent_comment_id !== comment.id));
     onCountChange(-removed);
@@ -156,7 +157,7 @@ export function CommentsThread({
     const trimmed = editDraft.trim();
     if (!trimmed) return;
     const { data, error: updateError } = await supabase.from("group_post_comments").update({ content: trimmed }).eq("id", comment.id).select("*").single();
-    if (updateError) { setError(updateError.message); return; }
+    if (updateError) { setError("The comment could not be updated. Please try again."); return; }
     setComments((current) => current.map((item) => item.id === comment.id ? { ...item, ...(data as GroupComment) } : item));
     setEditingId(null); setEditDraft("");
   }
@@ -189,6 +190,7 @@ export function CommentsThread({
                 {isActiveMember && !isReply && <Button size="xs" variant="ghost" onClick={() => setReplyTo(comment)}><CornerDownRight />Reply</Button>}
                 {comment.author_id === userId && <Button size="icon-xs" variant="ghost" aria-label="Edit comment" onClick={() => { setEditingId(comment.id); setEditDraft(comment.content); }}><Pencil /></Button>}
                 {(comment.author_id === userId || canModerate(viewerRole)) && <Button size="icon-xs" variant="ghost" aria-label="Delete comment" onClick={() => void remove(comment)}><Trash2 /></Button>}
+                <ReportDialog targetType="comment" targetId={comment.id} label="Report comment" />
               </div>
             </article>;
           })}

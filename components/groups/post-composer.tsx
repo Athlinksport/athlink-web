@@ -56,7 +56,7 @@ export function PostComposer({
     if (image) {
       imagePath = `${userId}/${groupId}/post-${crypto.randomUUID()}.${safeFileExtension(image.file)}`;
       const { error: uploadError } = await supabase.storage.from("group-post-images").upload(imagePath, image.file);
-      if (uploadError) { setError(`Image upload failed: ${uploadError.message}`); setIsSubmitting(false); return; }
+      if (uploadError) { setError("The image could not be uploaded. Please try again."); setIsSubmitting(false); return; }
       imageUrl = image.preview;
     }
     const optimisticId = `optimistic-${crypto.randomUUID()}`;
@@ -76,7 +76,7 @@ export function PostComposer({
         });
       }
       onCreated({ ...optimistic, id: optimisticId, content: `__ROLLBACK__${optimisticId}` });
-      setError(insertError.message);
+      setError("The post could not be published. Please try again.");
       setIsSubmitting(false);
       return;
     }
@@ -85,7 +85,7 @@ export function PostComposer({
       const { data: signedImage, error: signedImageError } = await supabase.storage
         .from("group-post-images")
         .createSignedUrl(imagePath, GROUP_POST_IMAGE_SIGNED_URL_TTL_SECONDS);
-      if (signedImageError) setError(`Post created, but its image could not be loaded: ${signedImageError.message}`);
+      if (signedImageError) setError("The post was created, but its image could not be loaded.");
       renderedImageUrl = signedImage?.signedUrl ?? null;
     }
     onCreated({ ...(data as GroupPost), image_url: renderedImageUrl, author: profile, author_role: null, viewer_has_liked: false, content: `__REPLACE__${optimisticId}__CONTENT__${data.content}` });

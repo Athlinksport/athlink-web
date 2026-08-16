@@ -39,7 +39,7 @@ export function MembersPanel({
     let query = supabase.from("group_members").select("*").eq("group_id", groupId).order("role").order("joined_at").range(nextPage * MEMBER_PAGE_SIZE, (nextPage + 1) * MEMBER_PAGE_SIZE - 1);
     if (!canManage) query = query.eq("status", "active");
     const { data, error: membersError } = await query;
-    if (membersError) { setError(membersError.message); setIsLoading(false); return; }
+    if (membersError) { setError("Group members could not be loaded. Please try again."); setIsLoading(false); return; }
     const rows = data ?? [];
     const ids = rows.map((row) => row.user_id);
     const [{ data: profiles }, { data: sports }] = await Promise.all([
@@ -58,7 +58,7 @@ export function MembersPanel({
   async function manage(member: GroupMember, action: "approve" | "reject" | "remove" | "role", role?: GroupRole) {
     if (action === "remove" && !window.confirm(`Remove ${member.profile?.display_name ?? "this member"} from the group?`)) return;
     const { error: actionError } = await supabase.rpc("manage_group_member", { target_group: groupId, target_user: member.user_id, action, new_role: role ?? null });
-    if (actionError) { setError(actionError.message); return; }
+    if (actionError) { setError("The membership action could not be completed. Please try again."); return; }
     if (action === "remove") setMembers((current) => current.filter((item) => item.id !== member.id));
     else if (action === "reject") setMembers((current) => current.map((item) => item.id === member.id ? { ...item, status: "rejected" } : item));
     else if (action === "approve") setMembers((current) => current.map((item) => item.id === member.id ? { ...item, status: "active" } : item));
@@ -67,7 +67,7 @@ export function MembersPanel({
   async function transfer(member: GroupMember) {
     if (!window.confirm(`Transfer ownership to ${member.profile?.display_name ?? "this member"}? You will become an admin.`)) return;
     const { error: transferError } = await supabase.rpc("transfer_group_ownership", { target_group: groupId, target_user: member.user_id });
-    if (transferError) { setError(transferError.message); return; }
+    if (transferError) { setError("Group ownership could not be transferred. Please try again."); return; }
     setMembers((current) => current.map((item) => item.user_id === userId ? { ...item, role: "admin" } : item.user_id === member.user_id ? { ...item, role: "owner" } : item));
     onOwnershipTransfer(member.user_id);
   }

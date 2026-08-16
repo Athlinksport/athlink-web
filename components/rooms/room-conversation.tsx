@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/ui/inline-error";
 import { Textarea } from "@/components/ui/textarea";
+import { ReportDialog } from "@/components/safety/report-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import {
   DIRECT_MESSAGE_MAX_LENGTH,
@@ -408,6 +409,7 @@ export function RoomConversation() {
                           {mine && message.status === "sending" && <LoaderCircle className="size-3 animate-spin" aria-label="Sending" />}
                           {mine && message.status === "failed" && <button type="button" className="inline-flex items-center gap-1 font-semibold text-red-700" onClick={() => void sendMessage(message.clientContent ?? message.content, message.id)}><RefreshCw className="size-3" />Retry</button>}
                           {mine && !message.status && (message.read_at ? <CheckCheck className="size-3.5" aria-label="Read" /> : <Check className="size-3.5" aria-label="Sent" />)}
+                          {!mine && !message.status && <ReportDialog targetType="message" targetId={message.id} label="Report message" />}
                         </div>
                       </div>
                     </div>
