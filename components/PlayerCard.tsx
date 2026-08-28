@@ -129,6 +129,7 @@ export default function PlayerCard({ player }: PlayerCardProps) {
             src={player.profileImageUrl}
             alt={`${player.displayName} profile`}
             fill
+            unoptimized
             sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />

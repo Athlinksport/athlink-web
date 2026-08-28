@@ -75,6 +75,9 @@ export function RoomConversation() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const initialScrollRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const pendingScrollRef = useRef<ScrollBehavior | null>(null);
+  const prependScrollRef = useRef<{ height: number; top: number } | null>(null);
   const markReadInFlightRef = useRef(false);
   const markReadPendingRef = useRef(false);
 
@@ -220,11 +223,38 @@ export function RoomConversation() {
   }, [isAuthLoading, loadInitial, router, user]);
 
   useLayoutEffect(() => {
-    if (!isLoading && !initialScrollRef.current) {
-      endRef.current?.scrollIntoView({ block: "end" });
+    const viewport = viewportRef.current;
+    if (!viewport || isLoading) return;
+
+    if (prependScrollRef.current) {
+      const { height, top } = prependScrollRef.current;
+      viewport.scrollTop = top + viewport.scrollHeight - height;
+      prependScrollRef.current = null;
+      return;
+    }
+
+    if (!initialScrollRef.current) {
+      viewport.scrollTop = viewport.scrollHeight;
       initialScrollRef.current = true;
+      isNearBottomRef.current = true;
+      return;
+    }
+
+    if (pendingScrollRef.current) {
+      endRef.current?.scrollIntoView({
+        behavior: pendingScrollRef.current,
+        block: "end",
+      });
+      pendingScrollRef.current = null;
     }
   }, [isLoading, messages.length]);
+
+  const updateNearBottom = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    isNearBottomRef.current =
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 120;
+  }, []);
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -238,6 +268,7 @@ export function RoomConversation() {
           if (!subscribed) return;
           const incoming = (payload.new ?? payload.old) as RoomMessage;
           if (!incoming?.id) return;
+          const shouldFollowIncoming = isNearBottomRef.current;
           setMessages((current) => {
             const pendingIndex = payload.eventType === "INSERT"
               ? current.findIndex((message) => message.status === "sending"
@@ -250,10 +281,8 @@ export function RoomConversation() {
             return mergeMessages(withoutPending, [{ ...incoming, read_at: null }]);
           });
           if (payload.eventType === "INSERT" && incoming.sender_id !== user.id) {
-            requestAnimationFrame(() => {
-              endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-              markRead();
-            });
+            if (shouldFollowIncoming) pendingScrollRef.current = "smooth";
+            markRead();
           }
         },
       )
@@ -288,17 +317,16 @@ export function RoomConversation() {
     if (!cursor || isLoadingOlder) return;
     const viewport = viewportRef.current;
     const previousHeight = viewport?.scrollHeight ?? 0;
+    const previousTop = viewport?.scrollTop ?? 0;
     setIsLoadingOlder(true);
     try {
       const response = await fetch(`/api/rooms/${conversationId}/messages?before=${encodeURIComponent(cursor)}`, { cache: "no-store" });
       const result = await response.json() as { error?: string; messages?: RoomMessage[]; hasMore?: boolean; nextCursor?: string | null };
       if (!response.ok) throw new Error(result.error ?? "Older messages could not be loaded.");
+      prependScrollRef.current = { height: previousHeight, top: previousTop };
       setMessages((current) => mergeMessages(result.messages ?? [], current));
       setHasMore(Boolean(result.hasMore));
       setCursor(result.nextCursor ?? null);
-      requestAnimationFrame(() => {
-        if (viewport) viewport.scrollTop += viewport.scrollHeight - previousHeight;
-      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Older messages could not be loaded.");
     } finally {
@@ -330,7 +358,7 @@ export function RoomConversation() {
     setContent("");
     setComposerError("");
     setIsSending(true);
-    requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+    pendingScrollRef.current = "smooth";
     try {
       const response = await fetch(`/api/rooms/${conversationId}/messages`, {
         method: "POST",
@@ -374,9 +402,9 @@ export function RoomConversation() {
   }
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
-      <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 sm:px-4 sm:py-4 lg:px-6">
-        <div className="flex min-h-[calc(100svh-3.75rem)] w-full flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/90 sm:min-h-[calc(100svh-6rem)] sm:rounded-3xl sm:border sm:bg-surface/80">
+    <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <section className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-1 sm:px-4 sm:py-4 lg:px-6">
+        <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden border-white/10 bg-slate-950/90 sm:rounded-3xl sm:border sm:bg-surface/80">
           <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-3 py-3 backdrop-blur-xl sm:px-5">
             <Button nativeButton={false} render={<Link href="/rooms" />} variant="ghost" size="icon" aria-label="Back to rooms"><ArrowLeft /></Button>
             <Avatar size="lg" className="size-11 bg-white/8">
@@ -389,7 +417,11 @@ export function RoomConversation() {
             </div>
           </header>
 
-          <div ref={viewportRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5">
+          <div
+            ref={viewportRef}
+            onScroll={updateNearBottom}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5"
+          >
             {hasMore && <div className="mb-4 text-center"><Button variant="ghost" size="sm" disabled={isLoadingOlder} onClick={() => void loadOlder()}>{isLoadingOlder ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}Load older messages</Button></div>}
             {error && <InlineError className="mb-4">{error}</InlineError>}
             {readError && <InlineError className="mb-4">{readError}</InlineError>}

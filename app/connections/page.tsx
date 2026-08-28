@@ -250,6 +250,7 @@ export default function ConnectionsPage() {
                                                     alt={name}
                                                     width={64}
                                                     height={64}
+                                                    unoptimized
                                                     className="h-full w-full object-cover"
                                                 />
                                             ) : (
@@ -348,6 +349,7 @@ export default function ConnectionsPage() {
                                                         alt={name}
                                                         width={64}
                                                         height={64}
+                                                        unoptimized
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
@@ -450,6 +452,7 @@ export default function ConnectionsPage() {
                                                             alt={name}
                                                             width={64}
                                                             height={64}
+                                                            unoptimized
                                                             className="h-full w-full object-cover"
                                                         />
                                                     ) : (

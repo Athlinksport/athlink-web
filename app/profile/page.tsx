@@ -97,6 +97,21 @@ async function createCroppedImage(
   });
 }
 
+function avatarObjectPath(value: string | null) {
+  if (!value) return null;
+  const marker = "/storage/v1/object/public/avatars/";
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex === -1) return null;
+
+  try {
+    return decodeURIComponent(
+      value.slice(markerIndex + marker.length).split("?")[0],
+    );
+  } catch {
+    return null;
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { supabase, user, isAuthLoading } = useAuth();
@@ -131,6 +146,12 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+    };
+  }, [cropImageUrl]);
 
   useEffect(() => {
     let ignore = false;
@@ -234,64 +255,104 @@ export default function ProfilePage() {
     event.target.value = "";
   }
 
-  async function uploadAvatarFile(file: File) {
-
+  async function uploadAvatarFile(file: File): Promise<boolean> {
     if (!userId) {
-      return;
+      setMessage("Your profile is not ready yet. Please try again.");
+      return false;
     }
 
     if (!file.type.startsWith("image/")) {
       setMessage("Please select an image file.");
-      return;
+      return false;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       setMessage("Profile photo must be smaller than 5 MB.");
-      return;
+      return false;
     }
 
     setMessage("");
     setIsUploadingAvatar(true);
 
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filePath = `${userId}/avatar-${Date.now()}.${extension}`;
+    const previousAvatarUrl = avatarUrl;
+    const cacheKey = crypto.randomUUID();
+    const filePath = `${userId}/avatar-${cacheKey}.jpg`;
+    let uploaded = false;
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setMessage("Your profile photo could not be uploaded. Please try again.");
+        return false;
+      }
+      uploaded = true;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+      const versionedPublicUrl = `${publicUrl}?v=${cacheKey}`;
+
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: versionedPublicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId)
+        .select("avatar_url")
+        .single();
+
+      if (
+        profileError
+        || !updatedProfile
+        || updatedProfile.avatar_url !== versionedPublicUrl
+      ) {
+        await cleanupAvatar(filePath);
+        setMessage("Your profile photo was uploaded, but the profile could not be updated.");
+        return false;
+      }
+
+      setAvatarUrl(versionedPublicUrl);
+      setMessage("Profile photo uploaded successfully.");
+      router.refresh();
+
+      const previousPath = avatarObjectPath(previousAvatarUrl);
+      if (previousPath && previousPath !== filePath) {
+        void cleanupAvatar(previousPath).then((cleaned) => {
+          if (!cleaned) console.warn("The previous profile photo could not be cleaned up.");
+        });
+      }
+
+      return true;
+    } catch {
+      if (uploaded) await cleanupAvatar(filePath);
+      setMessage("Your profile photo could not be saved. Please try again.");
+      return false;
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  }
+
+  async function cleanupAvatar(path: string) {
+    try {
+      const response = await fetch("/api/profile/avatar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
       });
-
-    if (uploadError) {
-      setMessage("Your profile photo could not be uploaded. Please try again.");
-      setIsUploadingAvatar(false);
-      return;
+      return response.ok;
+    } catch {
+      return false;
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        avatar_url: publicUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-
-    if (profileError) {
-      setMessage("Your profile photo was uploaded, but the profile could not be updated.");
-      setIsUploadingAvatar(false);
-      return;
-    }
-
-    setAvatarUrl(publicUrl);
-    setMessage("Profile photo uploaded successfully.");
-    setIsUploadingAvatar(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -420,10 +481,12 @@ export default function ProfilePage() {
               <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-slate-900">
                 {avatarUrl ? (
                   <Image
+                    key={avatarUrl}
                     src={avatarUrl}
                     alt="Profile"
                     width={112}
                     height={112}
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -762,7 +825,6 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => {
-                  URL.revokeObjectURL(cropImageUrl);
                   setCropImageUrl(null);
                 }}
                 className="rounded-xl border border-white/10 px-5 py-3 font-medium text-slate-300 transition hover:bg-white/5"
@@ -785,10 +847,8 @@ export default function ProfilePage() {
                       croppedAreaPixels
                     );
 
-                    await uploadAvatarFile(croppedFile);
-
-                    URL.revokeObjectURL(cropImageUrl);
-                    setCropImageUrl(null);
+                    const saved = await uploadAvatarFile(croppedFile);
+                    if (saved) setCropImageUrl(null);
                   } catch (error) {
                     console.error(error);
                     setMessage("The edited image could not be saved.");
@@ -799,6 +859,18 @@ export default function ProfilePage() {
                 {isUploadingAvatar ? "Uploading..." : "Save photo"}
               </button>
             </div>
+            {message && (
+              <p
+                role={message.includes("successfully") ? "status" : "alert"}
+                className={`mt-3 rounded-xl px-4 py-3 text-sm ${
+                  message.includes("successfully")
+                    ? "bg-lime-400/10 text-lime-300"
+                    : "bg-red-500/10 text-red-300"
+                }`}
+              >
+                {message}
+              </p>
+            )}
           </div>
         </div>
       )}

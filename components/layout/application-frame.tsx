@@ -8,6 +8,7 @@ import { AnimatedBackground } from "@/components/background/AnimatedBackground";
 import { AppShell } from "@/components/layout/app-shell";
 import { RouteContentTransition } from "@/components/layout/route-content-transition";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { cn } from "@/lib/utils";
 
 const applicationRoutes = [
   "/dashboard",
@@ -34,16 +35,29 @@ function isApplicationRoute(pathname: string) {
  */
 export function ApplicationFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isConversationRoute = /^\/rooms\/[^/]+$/.test(pathname);
 
   if (!isApplicationRoute(pathname)) return children;
 
   return (
     <AuthProvider>
-      <AppShell className="text-white">
+      <AppShell
+        className={cn(
+          "text-white",
+          isConversationRoute && "h-dvh min-h-0 overflow-hidden",
+        )}
+      >
         <AnimatedBackground />
-        <div className="relative z-10 flex min-h-svh flex-col">
+        <div
+          className={cn(
+            "relative z-10 flex min-h-svh flex-col",
+            isConversationRoute && "h-dvh min-h-0 overflow-hidden",
+          )}
+        >
           <AppNavbar />
-          <RouteContentTransition>{children}</RouteContentTransition>
+          <RouteContentTransition constrainToViewport={isConversationRoute}>
+            {children}
+          </RouteContentTransition>
         </div>
       </AppShell>
     </AuthProvider>

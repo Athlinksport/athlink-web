@@ -3,19 +3,31 @@
 import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 /**
  * Transitions only App Router page content. The surrounding application frame,
  * navbar, and background remain outside this keyed presence boundary.
  */
-export function RouteContentTransition({ children }: { children: ReactNode }) {
+export function RouteContentTransition({
+  children,
+  constrainToViewport = false,
+}: {
+  children: ReactNode;
+  constrainToViewport?: boolean;
+}) {
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
   const duration = reducedMotion ? 0.08 : 0.22;
 
   return (
     <div
-      className="grid min-h-[calc(100svh-3.75rem)] flex-1 grid-cols-1 md:min-h-[calc(100svh-4rem)]"
+      className={cn(
+        "grid flex-1 grid-cols-1",
+        constrainToViewport
+          ? "min-h-0 overflow-hidden"
+          : "min-h-[calc(100svh-3.75rem)] md:min-h-[calc(100svh-4rem)]",
+      )}
       data-slot="route-content"
     >
       <motion.div
